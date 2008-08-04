@@ -12,10 +12,18 @@ import wx
 import os
 import sys
 import subprocess
+import glob
 
 LP_NAME = 'ListenPad' 
 LP_WIDTH = 225
 LP_HEIGHT = 400
+
+ID_QUIT = 1
+ID_ABOUT = 2
+ID_PLAYLIST = 3
+ID_INFO = 4
+ID_PLAY_LIST = 5 
+ID_MENU = 6
 
 class Info(wx.Panel):
     def __init__(self, parent, id):
@@ -28,81 +36,65 @@ class Option(object):
 class LRC(object):
     pass
 
-class PlayList(object):
-    pass
+class PlayList(wx.ListCtrl):
+    def __init__(self, parent, id):
+        wx.ListCtrl.__init__(self, parent, style = wx.LC_REPORT, pos = (100, 10))
+        self.parent = parent
+        self.list = []
+        self.parent.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnSelect)
+    
+    def add_dir(self, dir):
+        self.list += glob.glob(os.path.join(dir, '*.mp3'))
+        self.update()
 
-ID_QUIT = 1
-ID_ABOUT = 2
-ID_PLAYLIST = 3
-
-
-class Controller(wx.Frame):
-    """
-    mainframe
-    """
-    def __init__(self, parent, id, title):
-        wx.Frame.__init__(self, parent, id, title, size=(LP_WIDTH, LP_HEIGHT))
-        self.info = Info(self, -1)
-
-        menubar = wx.MenuBar()
-
-        file = wx.Menu()
-        file.Append(ID_QUIT, '&Quit')
-        self.Bind(wx.EVT_MENU, self.MyClose, id = ID_QUIT)
-        menubar.Append(file, '&File')
- 
-        help = wx.Menu()
-        help.Append(ID_ABOUT, '&About')
-        self.Bind(wx.EVT_MENU, self.OnAboutBox, id=ID_ABOUT)
-        menubar.Append(help, '&Help')
-        self.SetMenuBar(menubar)
-
-        self.sb = self.CreateStatusBar()
-        
-        import glob
-        self.playlist = glob.glob('/chenz/music/*.mp3')
-        print self.playlist
-
-        hbox = wx.BoxSizer(wx.HORIZONTAL)
-        self.list = wx.ListCtrl(self, ID_PLAYLIST, style=wx.LC_REPORT)
-
-        self.list.InsertColumn(0, 'name', -1)
-        #self.list.InsertColumn(1, 'place', width=130)
-        
-        for f in self.playlist:
-            index = self.list.InsertStringItem(sys.maxint, os.path.splitext(os.path.basename(f))[0])
+    def update(self):
+        self.InsertColumn(0, 'name', -1)
+        for f in self.list:
+            print f
+            self.InsertStringItem(sys.maxint, os.path.splitext(os.path.basename(f))[0])
             #self.list.SetStringItem(index, 1, i[1])
 
-        hbox.Add(self.list, -1, wx.EXPAND)
-        self.SetSizer(hbox)
-        self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnSelect, id = ID_PLAYLIST)
+    def OnSelect(self, event):
+        index = event.GetIndex()
+        file = self.list[index]
+        self.parent.sb.SetStatusText(file)
+        self.parent.player.play(file)
 
+class Player(object):
+
+    def __init__(self):
         self.mplayer = None
-        self.OrigClose = self.Close
-        self.Close = self.MyClose
-
-        self.sb.SetStatusText('Ready')
-        self.Centre()
-        self.Show()
-
  
-    def kill_mplayer(self):
+    def kill(self):
         if self.mplayer and not self.mplayer.poll():
             cmd = 'kill -9 %d' % self.mplayer.pid
             print cmd
             os.system(cmd)
 
-    def OnSelect(self, event):
-        self.kill_mplayer()
-        index = event.GetIndex()
-        file = self.playlist[index]
-        self.mplayer = subprocess.Popen(['mplayer', file], stdin = -1, stdout = -1, stderr = -1)
-        print self.mplayer.pid
+    def play(self, file):    
+        self.kill()
+        #self.mplayer = subprocess.Popen(['mplayer', file], stdin = -1, stdout = -1, stderr = -1)
+        self.mplayer = subprocess.Popen(['mplayer', file], stdin = -1)
+
+
+class Menu(wx.MenuBar):
+    
+    def __init__(self, parent, id):
+        wx.MenuBar.__init__(self, id)
+        self.parent = parent
+        file = wx.Menu()
+        file.Append(ID_QUIT, '&Quit')
+        self.parent.Bind(wx.EVT_MENU, self.OnQuit, id = ID_QUIT)
+        self.Append(file, '&File')
+
+        help = wx.Menu()
+        help.Append(ID_ABOUT, '&About')
+        self.parent.Bind(wx.EVT_MENU, self.OnAboutBox, id=ID_ABOUT)
+        self.Append(help, '&Help')
 
     def OnAboutBox(self, event):
         description = """ListenPad is a simple mp3 player"""
         licence = """GPL v2"""
-
         info = wx.AboutDialogInfo()
         info.SetName('ListenPad')
         info.SetVersion('v0.1')
@@ -116,10 +108,43 @@ class Controller(wx.Frame):
 	info.AddTranslator('')
         wx.AboutBox(info)
 
-    def MyClose(self, envent):
-        self.kill_mplayer()
+    def OnQuit(self, envent):
+        self.parent.OnClose()
+
+
+
+class Controller(wx.Frame):
+
+    def __init__(self, parent, id, title):
+        wx.Frame.__init__(self, parent, id, title, size=(LP_WIDTH, LP_HEIGHT))
+        self.info = Info(self, ID_INFO)
+
+        # Menu
+        self.SetMenuBar(Menu(self, ID_MENU))
+        
+        # PlayList
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        self.playlist = PlayList(self, ID_PLAYLIST)
+        hbox.Add(self.playlist, -1, wx.EXPAND)
+        self.SetSizer(hbox)
+
+        # Status bar
+        self.sb = self.CreateStatusBar()
+        self.sb.SetStatusText('Ready')
+
+        # MPlayer interface
+        self.player = Player()
+        self.playlist.add_dir('/chenz/music')
+
+        self.Bind(wx.EVT_CLOSE, self.OnClose)
+
+        self.Centre()
+        self.Show()
+
+    def OnClose(self, envent=None):
         #save config here
-        self.OrigClose()
+        self.player.kill()
+        self.Destroy()
 
 app = wx.App()
 Controller(None, -1, 'ListenPad')
