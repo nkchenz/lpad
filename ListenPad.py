@@ -13,6 +13,8 @@ import os
 import sys
 import subprocess
 import glob
+from Queue import Queue
+from threading import Thread
 
 LP_NAME = 'ListenPad' 
 LP_WIDTH = 225
@@ -24,6 +26,8 @@ ID_PLAYLIST = 3
 ID_INFO = 4
 ID_PLAY_LIST = 5 
 ID_MENU = 6
+
+next_playing = Queue(1)
 
 class Info(wx.Panel):
     def __init__(self, parent, id):
@@ -48,7 +52,7 @@ class PlayList(wx.ListCtrl):
         self.update()
 
     def update(self):
-        self.InsertColumn(0, 'name', -1)
+        self.InsertColumn(0, 'Play List', -1)
         for f in self.list:
             print f
             self.InsertStringItem(sys.maxint, os.path.splitext(os.path.basename(f))[0])
@@ -56,25 +60,47 @@ class PlayList(wx.ListCtrl):
 
     def OnSelect(self, event):
         index = event.GetIndex()
-        file = self.list[index]
-        self.parent.sb.SetStatusText(file)
-        self.parent.player.play(file)
+        print index
+        next_playing.put(index)
+        self.parent.player.kill()
 
 class Player(object):
 
-    def __init__(self):
+    def __init__(self, parent):
         self.mplayer = None
+        self.parent = parent
+        self.quit = False    # main threa use this to inform us to quit
  
     def kill(self):
         if self.mplayer and not self.mplayer.poll():
             cmd = 'kill -9 %d' % self.mplayer.pid
             print cmd
             os.system(cmd)
+    
+    def mainloop(self):
+        print 'thread player started', os.getpid()
+        while True:
+            print 'waiting for q'
+            i = next_playing.get(block = True)
+            pl = self.parent.playlist.list
+            file = pl[i]
+            self.parent.playlist.index = i
+            self.parent.sb.SetStatusText(file)
+            print 'playing ', file
+            self._play(file)
+            print 'done' 
+            if self.quit:
+                break
+            if next_playing.empty():
+                next = i + 1
+                if next >= len(pl):
+                    next = 0
+                next_playing.put(next)
 
-    def play(self, file):    
-        self.kill()
+    def _play(self, file):    
         #self.mplayer = subprocess.Popen(['mplayer', file], stdin = -1, stdout = -1, stderr = -1)
         self.mplayer = subprocess.Popen(['mplayer', file], stdin = -1)
+        self.mplayer.wait()
 
 
 class Menu(wx.MenuBar):
@@ -133,7 +159,12 @@ class Controller(wx.Frame):
         self.sb.SetStatusText('Ready')
 
         # MPlayer interface
-        self.player = Player()
+        self.player = Player(self)
+        self.player_thread = Thread(target = self.player.mainloop)
+        self.player_thread.setDaemon(True)
+        self.player_thread.start() 
+        print 'main pid:', os.getpid()
+
         self.playlist.add_dir('/chenz/music')
 
         self.Bind(wx.EVT_CLOSE, self.OnClose)
@@ -143,6 +174,7 @@ class Controller(wx.Frame):
 
     def OnClose(self, envent=None):
         #save config here
+        self.player.quit = True
         self.player.kill()
         self.Destroy()
 
