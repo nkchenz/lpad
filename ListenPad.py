@@ -13,8 +13,7 @@ import os
 import sys
 import subprocess
 import glob
-from Queue import Queue
-from threading import Thread
+import threading
 
 LP_NAME = 'ListenPad' 
 LP_WIDTH = 225
@@ -28,7 +27,6 @@ ID_PLAY_LIST = 5
 ID_MENU = 6
 ID_ADD = 7
 
-next_playing = Queue()
 
 class Info(wx.Panel):
     def __init__(self, parent, id):
@@ -70,9 +68,11 @@ class PlayList(wx.ListCtrl):
 
     def OnSelect(self, event):
         index = event.GetIndex()
-        print index
-        next_playing.put(index)
+        self.parent.cond.acquire()
+        self.parent.player.next_playing = index
         self.parent.player.kill()
+        self.parent.cond.notifyAll()
+        self.parent.cond.release()
 
 class Player(object):
 
@@ -80,6 +80,7 @@ class Player(object):
         self.mplayer = None
         self.parent = parent
         self.quit = False    # main threa use this to inform us to quit
+        self.next_playing = ''
  
     def kill(self):
         if self.mplayer and not self.mplayer.poll():
@@ -90,22 +91,32 @@ class Player(object):
     def mainloop(self):
         print 'thread player started', os.getpid()
         while True:
-            print 'waiting for q'
-            i = next_playing.get(block = True)
+    
+            print 'Waiting '
+            # Wait until we got something to play
+            self.parent.cond.acquire() #acquire the lock
+            while self.next_playing == '':
+                self.parent.cond.wait()
+
+            playing = self.next_playing
+            self.next_playing = ''
+            self.parent.cond.release()
+
             pl = self.parent.playlist.list
-            file = pl[i]
-            self.parent.playlist.index = i
+            file = pl[playing]
             self.parent.sb.SetStatusText(file)
-            print 'playing ', file
+            print 'Playing ', file
             self._play(file)
-            print 'done' 
+            print 'Done' 
+
             if self.quit:
                 break
-            if next_playing.empty():
-                next = i + 1
+
+            if self.next_playing == '':
+                next = playing + 1
                 if next >= len(pl):
                     next = 0
-                next_playing.put(next)
+                self.next_playing = next
 
     def _play(self, file):    
         #self.mplayer = subprocess.Popen(['mplayer', file], stdin = -1, stdout = -1, stderr = -1)
@@ -185,13 +196,16 @@ class Controller(wx.Frame):
         self.playlist = PlayList(self, ID_PLAYLIST)
         hbox.Add(self.playlist, 2, wx.EXPAND | wx.LEFT | wx.ALIGN_TOP, 10)
 
+        # Used for block player thread if there are no songs to play
+        self.cond = threading.Condition()
+
         # Status bar
         self.sb = self.CreateStatusBar()
         self.sb.SetStatusText('Ready')
 
         # MPlayer interface
         self.player = Player(self)
-        self.player_thread = Thread(target = self.player.mainloop)
+        self.player_thread = threading.Thread(target = self.player.mainloop)
         self.player_thread.setDaemon(True)
         self.player_thread.start() 
         print 'main pid:', os.getpid()
