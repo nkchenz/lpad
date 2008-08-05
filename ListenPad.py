@@ -26,12 +26,23 @@ ID_PLAYLIST = 3
 ID_INFO = 4
 ID_PLAY_LIST = 5 
 ID_MENU = 6
+ID_ADD = 7
 
-next_playing = Queue(1)
+next_playing = Queue()
 
 class Info(wx.Panel):
     def __init__(self, parent, id):
         wx.Panel.__init__(self, parent, id)
+        self.parent = parent
+        wx.Button(self, ID_ADD, 'Add', style = wx.BU_LEFT)
+        self.Bind(wx.EVT_BUTTON, self.OnAdd, id = ID_ADD)
+    
+    def OnAdd(self, envent):
+        dialog = wx.DirDialog(None, "Please choose your project directory:")
+        if dialog.ShowModal() == wx.ID_OK:
+            dir = dialog.GetPath()
+            self.parent.GetParent().playlist.add_dir(dir)
+
         #self.text = wx.StaticText(self, -1, 'Ready')
 
 class Option(object):
@@ -42,21 +53,30 @@ class LRC(object):
 
 class PlayList(wx.ListCtrl):
     def __init__(self, parent, id):
-        wx.ListCtrl.__init__(self, parent, style = wx.LC_REPORT, pos = (100, 10))
+        wx.ListCtrl.__init__(self, parent, style = wx.LC_REPORT)
         self.parent = parent
         self.list = []
         self.parent.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnSelect)
+        self.InsertColumn(0, '', -1)
+        self.InsertColumn(1, '', -1)
     
-    def add_dir(self, dir):
-        self.list += glob.glob(os.path.join(dir, '*.mp3'))
-        self.update()
-
     def update(self):
-        self.InsertColumn(0, 'Play List', -1)
+        i = 0 
         for f in self.list:
             print f
-            self.InsertStringItem(sys.maxint, os.path.splitext(os.path.basename(f))[0])
-            #self.list.SetStringItem(index, 1, i[1])
+            i += 1
+            index = self.InsertStringItem(i-1, str(i))
+            self.SetStringItem(index, 1, os.path.splitext(os.path.basename(f))[0])
+
+    def add_dir(self, dir):
+        files = glob.glob(os.path.join(dir, '*.mp3'))
+        i = len(self.list) 
+        for f in files:
+            print f
+            i += 1
+            index = self.InsertStringItem(i-1, str(i))
+            self.SetStringItem(index, 1, os.path.splitext(os.path.basename(f))[0])
+        self.list += files
 
     def OnSelect(self, event):
         index = event.GetIndex()
@@ -143,16 +163,24 @@ class Controller(wx.Frame):
 
     def __init__(self, parent, id, title):
         wx.Frame.__init__(self, parent, id, title, size=(LP_WIDTH, LP_HEIGHT))
-        self.info = Info(self, ID_INFO)
+
+
+        #wx.Button(self, -1, 'Test', style = wx.BU_LEFT)
+
+        hbox = wx.BoxSizer(wx.VERTICAL)
+        infobox = wx.BoxSizer(wx.HORIZONTAL)
+
+        infopanel = wx.Panel(self, -1, size =(LP_WIDTH, LP_HEIGHT/4))
+        self.info = Info(infopanel, ID_INFO )
+        infobox.Add(self.info, 0)
+        hbox.Add(infobox, 0, wx.ALIGN_TOP | wx.EXPAND, 3)
 
         # Menu
         self.SetMenuBar(Menu(self, ID_MENU))
         
         # PlayList
-        hbox = wx.BoxSizer(wx.HORIZONTAL)
         self.playlist = PlayList(self, ID_PLAYLIST)
-        hbox.Add(self.playlist, -1, wx.EXPAND)
-        self.SetSizer(hbox)
+        hbox.Add(self.playlist, 2, wx.EXPAND | wx.LEFT | wx.ALIGN_TOP, 10)
 
         # Status bar
         self.sb = self.CreateStatusBar()
@@ -165,15 +193,24 @@ class Controller(wx.Frame):
         self.player_thread.start() 
         print 'main pid:', os.getpid()
 
-        self.playlist.add_dir('/chenz/music')
+        self.conf = os.path.expanduser('~/.default.lp')
+        tmp = {}
+        if os.path.isfile(self.conf):
+            execfile(self.conf, {}, tmp)
+            if 'playlist' in tmp:
+                self.playlist.list = tmp['playlist']
+                self.playlist.update()
+
 
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
+        self.SetSizer(hbox)
         self.Centre()
         self.Show()
 
     def OnClose(self, envent=None):
         #save config here
+        open(self.conf, 'w+').write('playlist = ' + str(self.playlist.list))
         self.player.quit = True
         self.player.kill()
         self.Destroy()
