@@ -1,0 +1,16 @@
+Package: listenpad 
+Version: 0.1
+Section: sound
+Priority: extra
+Essential: no
+Architecture: i386
+Depends: python (>=2.5), python-wxgtk2.8, mplayer
+Enhances: 
+Suggests:
+Installed-Size: 10
+Maintainer: Chen Zheng [nkthunder@gmail.com]
+Provides:ListenPad
+Description:
+    ListenPad - just listen what you want
+    
+    MPlayer frontend for linux mp3 playing
