@@ -33,16 +33,6 @@ next_playing = Queue()
 class Info(wx.Panel):
     def __init__(self, parent, id):
         wx.Panel.__init__(self, parent, id)
-        self.parent = parent
-        wx.Button(self, ID_ADD, 'Add', style = wx.BU_LEFT)
-        self.Bind(wx.EVT_BUTTON, self.OnAdd, id = ID_ADD)
-    
-    def OnAdd(self, envent):
-        dialog = wx.DirDialog(None, "Please choose your project directory:")
-        if dialog.ShowModal() == wx.ID_OK:
-            dir = dialog.GetPath()
-            self.parent.GetParent().playlist.add_dir(dir)
-
         #self.text = wx.StaticText(self, -1, 'Ready')
 
 class Option(object):
@@ -129,8 +119,10 @@ class Menu(wx.MenuBar):
         wx.MenuBar.__init__(self, id)
         self.parent = parent
         file = wx.Menu()
+        file.Append(ID_ADD, '&Add Dir')
         file.Append(ID_QUIT, '&Quit')
         self.parent.Bind(wx.EVT_MENU, self.OnQuit, id = ID_QUIT)
+        self.parent.Bind(wx.EVT_MENU, self.OnAdd, id = ID_ADD)
         self.Append(file, '&File')
 
         help = wx.Menu()
@@ -138,6 +130,14 @@ class Menu(wx.MenuBar):
         self.parent.Bind(wx.EVT_MENU, self.OnAboutBox, id=ID_ABOUT)
         self.Append(help, '&Help')
 
+    
+    def OnAdd(self, envent):
+        dialog = wx.DirDialog(None, "Please choose your project directory:")
+        if dialog.ShowModal() == wx.ID_OK:
+            dir = dialog.GetPath()
+            self.parent.playlist.add_dir(dir)
+
+ 
     def OnAboutBox(self, event):
         description = """ListenPad is a simple mp3 player"""
         licence = """GPL v2"""
@@ -169,10 +169,13 @@ class Controller(wx.Frame):
 
         hbox = wx.BoxSizer(wx.VERTICAL)
         infobox = wx.BoxSizer(wx.HORIZONTAL)
+        #infopanel = wx.Panel(self, -1, size =(LP_WIDTH, LP_HEIGHT/4))
+        #self.info = Info(infopanel, ID_INFO )
 
-        infopanel = wx.Panel(self, -1, size =(LP_WIDTH, LP_HEIGHT/4))
-        self.info = Info(infopanel, ID_INFO )
-        infobox.Add(self.info, 0)
+        self.iwant = wx.TextCtrl(self, -1)
+        self.iwant.AppendText('I want listen ...')
+
+        infobox.Add(self.iwant, 1, wx.ALIGN_CENTER)
         hbox.Add(infobox, 0, wx.ALIGN_TOP | wx.EXPAND, 3)
 
         # Menu
