@@ -1,6 +1,5 @@
 #!/usr/bin/python
 #encoding: utf8
-
 """
 ListenPad -- a simple player just play mp3
 CopyRight (C) 2008 Chen Zheng <nkthunder@gmail.com> 
@@ -15,9 +14,13 @@ import subprocess
 import glob
 import threading
 
-LP_NAME = 'ListenPad' 
+LP_NAME = 'ListenPad v0.1' 
 LP_WIDTH = 225
 LP_HEIGHT = 400
+LP_PLAYLIST_INDEX_WIDTH = 40
+LP_PLAYLIST_NAME_WIDTH = LP_WIDTH  - LP_PLAYLIST_INDEX_WIDTH
+LP_PLAYLIST_TEXT = '#17E8F1'
+LP_PLAYLIST_BACKGROUND = '#000000'
 
 ID_QUIT = 1
 ID_ABOUT = 2
@@ -28,59 +31,42 @@ ID_MENU = 6
 ID_ADD = 7
 
 
-class Info(wx.Panel):
-    def __init__(self, parent, id):
-        wx.Panel.__init__(self, parent, id)
-        #self.text = wx.StaticText(self, -1, 'Ready')
-
-class Option(object):
-    pass
-
-class LRC(object):
-    pass
-
 class PlayList(wx.ListCtrl):
     def __init__(self, parent, id):
         wx.ListCtrl.__init__(self, parent, style = wx.LC_REPORT)
         self.parent = parent
-        self.list = []
         self.parent.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnSelect)
-        self.InsertColumn(0, '', -1)
-        self.InsertColumn(1, '', -1)
+        self.InsertColumn(0, 'IND', width = LP_PLAYLIST_INDEX_WIDTH)
+        self.InsertColumn(1, 'NAME', width = LP_PLAYLIST_NAME_WIDTH)
+        self.list = []
     
+    # Refresh playlist
     def update(self):
-        i = 0 
-        for f in self.list:
-            print f
-            i += 1
-            index = self.InsertStringItem(i-1, str(i))
-            self.SetStringItem(index, 1, os.path.splitext(os.path.basename(f))[0])
+        self.DeleteAllItems()
+        for i in range(len(self.list)):
+            index = self.InsertStringItem(i, str(i + 1))
+            self.SetStringItem(index, 1, os.path.splitext(os.path.basename(self.list[i]))[0])
+            self.SetItemBackgroundColour(index, LP_PLAYLIST_BACKGROUND)
+            self.SetItemTextColour(index, LP_PLAYLIST_TEXT)
 
     def add_dir(self, dir):
         files = glob.glob(os.path.join(dir, '*.mp3'))
-        i = len(self.list) 
-        for f in files:
-            print f
-            i += 1
-            index = self.InsertStringItem(i-1, str(i))
-            self.SetStringItem(index, 1, os.path.splitext(os.path.basename(f))[0])
         self.list += files
+        self.update()
 
     def OnSelect(self, event):
         index = event.GetIndex()
-        self.parent.cond.acquire()
-        self.parent.player.next_playing = index
-        self.parent.player.kill()
-        self.parent.cond.notifyAll()
-        self.parent.cond.release()
+        self.parent.player.selected = index
+        self.parent.player.notify()
 
 class Player(object):
 
     def __init__(self, parent):
-        self.mplayer = None
+        self.mplayer = None  # MPlayer Thread 
         self.parent = parent
-        self.quit = False    # main threa use this to inform us to quit
-        self.next_playing = 'IDLE'
+        self.quit = False    # Main thread uses this to inform us to terminate
+        self.idle = True     # Ready status, no songs playing
+        self.selected = None # The index of the song user clicked
  
     def kill(self):
         if self.mplayer and not self.mplayer.poll():
@@ -88,46 +74,63 @@ class Player(object):
             print cmd
             os.system(cmd)
     
-    def mainloop(self):
-        print 'thread player started', os.getpid()
-        while True:
-    
-            print 'Waiting '
-            # Wait until we got something to play
-            self.parent.cond.acquire() #acquire the lock
-            while self.next_playing == 'IDLE':
-                self.parent.cond.wait()
-            
-            # Awake from sleep, check whether should quit
-            if self.quit:
-                break
+    def notify(self):
+        """Something happened, we'd better to wakeup from idle or stop playing"""
+        if self.idle:
+            self.parent.cond.acquire()
+            self.idle = False
+            self.parent.cond.notify()
+            self.parent.cond.release()
+        else:
+            self.parent.player.kill()
+        
+        # WE ARE STILL IN THE MAIN THREAD, NO USE HERE
+        # Check whether we should quit
+        #if self.quit:
+        #    # thread exit
+        #    sys.exit(0)
 
-            playing = self.next_playing
-            self.next_playing = 'IDLE' 
+    def mainloop(self):
+        print 'Player Thread', os.getpid()
+        while True:
+            # Wait until we got something to play
+            print 'IDLE '
+            self.parent.cond.acquire() #acquire the lock
+            while self.idle:
+                self.parent.cond.wait()
             self.parent.cond.release()
 
-            pl = self.parent.playlist.list
-            file = pl[playing]
-            self.parent.sb.SetStatusText(file)
-            print 'Playing ', file
-            self._play(file)
-            print 'Done' 
-
-            # Back from playing, check whether should quit
+            # Awake from sleep, check whether should quit
             if self.quit:
-                break
+                return
 
-            if self.next_playing == 'IDLE':
-                next = playing + 1
-                if next >= len(pl):
-                    next = 0
-                self.parent.cond.acquire()
-                self.next_playing = next
-                self.parent.cond.notifyAll()
-                self.parent.cond.release()
+            # Start playing
+            i = self.selected
+            self.selected = None # It will be changed by user clicking playlist while we're playing
+            pl = self.parent.playlist.list
+            while True:
+                print i
+                file = pl[i]
+                #self.parent.sb.SetStatusText(file)
+                print 'Playing ', file
+                self.play_and_wait(file)
+                print 'Done' 
+                
+                # Back from playing, check whether should quit
+                if self.quit:
+                    return
 
-    def _play(self, file):    
-        #self.mplayer = subprocess.Popen(['mplayer', file], stdin = -1, stdout = -1, stderr = -1)
+                # Choose loop  style here
+                if self.selected:
+                    i = self.selected
+                    continue
+                else:
+                    #if no more to play break
+                    i += 1
+                    if i >= len(pl):
+                        i = 0
+
+    def play_and_wait(self, file):    
         self.mplayer = subprocess.Popen(['mplayer', file], stdin = -1)
         self.mplayer.wait()
 
@@ -151,7 +154,7 @@ class Menu(wx.MenuBar):
 
     
     def OnAdd(self, envent):
-        dialog = wx.DirDialog(None, "Please choose your project directory:")
+        dialog = wx.DirDialog(None, "Which dir do you want to add? Only *.mp3 files will be added")
         if dialog.ShowModal() == wx.ID_OK:
             dir = dialog.GetPath()
             self.parent.playlist.add_dir(dir)
@@ -183,18 +186,16 @@ class Controller(wx.Frame):
     def __init__(self, parent, id, title):
         wx.Frame.__init__(self, parent, id, title, size=(LP_WIDTH, LP_HEIGHT))
 
-
-        #wx.Button(self, -1, 'Test', style = wx.BU_LEFT)
-
         hbox = wx.BoxSizer(wx.VERTICAL)
         infobox = wx.BoxSizer(wx.HORIZONTAL)
-        #infopanel = wx.Panel(self, -1, size =(LP_WIDTH, LP_HEIGHT/4))
-        #self.info = Info(infopanel, ID_INFO )
+
+        #self.info = wx.StaticText(self, -1, 'Ready')
+        #infobox.Add(self.info, 1, wx.ALIGN_LEFT)
 
         self.iwant = wx.TextCtrl(self, -1)
         self.iwant.AppendText('I want listen ...')
-
         infobox.Add(self.iwant, 1, wx.ALIGN_CENTER)
+
         hbox.Add(infobox, 0, wx.ALIGN_TOP | wx.EXPAND, 3)
 
         # Menu
@@ -208,17 +209,16 @@ class Controller(wx.Frame):
         self.cond = threading.Condition()
 
         # Status bar
-        self.sb = self.CreateStatusBar()
-        self.sb.SetStatusText('Ready')
+        #self.sb = self.CreateStatusBar()
+        #self.sb.SetStatusText('Ready')
 
         # MPlayer interface
         self.player = Player(self)
         self.player_thread = threading.Thread(target = self.player.mainloop)
-        #self.player_thread.setDaemon(True)
         self.player_thread.start() 
-        print 'main pid:', os.getpid()
 
-        self.conf = os.path.expanduser('~/.default.lp')
+        # Load auto saved list
+        self.conf = os.path.expanduser('~/.ListenPad.mp3list')
         tmp = {}
         if os.path.isfile(self.conf):
             execfile(self.conf, {}, tmp)
@@ -226,31 +226,23 @@ class Controller(wx.Frame):
                 self.playlist.list = tmp['playlist']
                 self.playlist.update()
 
-
         self.Bind(wx.EVT_CLOSE, self.OnClose)
-
         self.SetSizer(hbox)
         self.Centre()
         self.Show()
 
     def OnClose(self, envent=None):
-        #save config here
+        # Save config
         open(self.conf, 'w+').write('playlist = ' + str(self.playlist.list))
-
-
-        # We just want to tell child thread to stop, it's so ugly here using Condition
-        # Is there a self.player.stop()?
-
-        self.cond.acquire()
-        self.player.next_playing = 'STOP' 
+        
+        # Terminate player thread
         self.player.quit = True
-        self.player.kill()
-        self.cond.notifyAll()
-        self.cond.release()
+        self.player.notify()
 
         self.Destroy()
 
+print 'Main Thread ', os.getpid()
 app = wx.App()
-Controller(None, -1, 'ListenPad')
+Controller(None, -1, LP_NAME)
 app.MainLoop()
 
