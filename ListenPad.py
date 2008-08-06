@@ -17,7 +17,7 @@ import threading
 LP_NAME = 'ListenPad v0.1' 
 LP_WIDTH = 225
 LP_HEIGHT = 400
-LP_PLAYLIST_INDEX_WIDTH = 40
+LP_PLAYLIST_INDEX_WIDTH = 30
 LP_PLAYLIST_NAME_WIDTH = LP_WIDTH  - LP_PLAYLIST_INDEX_WIDTH
 LP_PLAYLIST_TEXT = '#17E8F1'
 LP_PLAYLIST_BACKGROUND = '#000000'
@@ -111,6 +111,7 @@ class Player(object):
             while True:
                 print i
                 file = pl[i]
+                wx.CallAfter(self.parent.sb.SetStatusText, file)
                 #self.parent.sb.SetStatusText(file)
                 print 'Playing ', file
                 self.play_and_wait(file)
@@ -123,6 +124,7 @@ class Player(object):
                 # Choose loop  style here
                 if self.selected:
                     i = self.selected
+                    self.selected = None
                     continue
                 else:
                     #if no more to play break
@@ -209,8 +211,8 @@ class Controller(wx.Frame):
         self.cond = threading.Condition()
 
         # Status bar
-        #self.sb = self.CreateStatusBar()
-        #self.sb.SetStatusText('Ready')
+        self.sb = self.CreateStatusBar()
+        self.sb.SetStatusText('Ready')
 
         # MPlayer interface
         self.player = Player(self)
