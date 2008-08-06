@@ -1,2 +1,2 @@
-cp ListenPad.py ListenPad-v*/usr/local/bin/listenpad
+cp ListenPad.py ListenPad-v0.1/usr/local/bin/listenpad
 dpkg-deb -b ListenPad-v0.1

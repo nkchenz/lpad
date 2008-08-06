@@ -1,0 +1,1 @@
+?package(listenpad): needs="X11" section="Apps/Sound" title="ListenPad" command="/usr/local/bin/listenpad"
