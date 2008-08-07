@@ -21,11 +21,13 @@ import random
 LP_NAME = 'ListenPad v0.1' 
 LP_WIDTH = 225
 LP_HEIGHT = 400
-LP_PLAYLIST_INDEX_WIDTH = 30
+LP_PLAYLIST_INDEX_WIDTH = 35 
 LP_PLAYLIST_NAME_WIDTH = LP_WIDTH  - LP_PLAYLIST_INDEX_WIDTH
 LP_PLAYLIST_TEXT = '#17E8F1'
 LP_PLAYLIST_BACKGROUND = '#000000'
 
+MPLAYER_CMD = '/usr/bin/mplayer'
+MPLAYER_ARGS = ''
 
 # Panel
 ID_PLAYLIST = 3
@@ -155,7 +157,7 @@ class Player(object):
 
 
     def play_and_wait(self, file):    
-        self.mplayer = subprocess.Popen(['mplayer', file], stdin = -1)
+        self.mplayer = subprocess.Popen([MPLAYER_CMD, MPLAYER_ARGS + file], stdin = -1)
         self.mplayer.wait()
 
 

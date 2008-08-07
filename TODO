@@ -1,0 +1,11 @@
+mplayerslave: 
+
+info: progress bar timer, mp3 meta data
+
+control: stop resume next pre
+
+lyric: show lyric
+
+I want to listen: enter song name, we'll find and download it automatically from baidu, google, etc.
+
+make a icon

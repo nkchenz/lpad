@@ -1,2 +1,3 @@
+mkdir -p ListenPad-v0.1/usr/local/bin
 cp ListenPad.py ListenPad-v0.1/usr/local/bin/listenpad
 dpkg-deb -b ListenPad-v0.1
