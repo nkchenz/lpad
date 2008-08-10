@@ -11,54 +11,6 @@ import glob
 LP_NAME = 'ListenPad v0.1' 
 LP_WIDTH = 225
 LP_HEIGHT = 400
-"""
-class Controller(QtGui.QMainWindow):
-    def __init__(self):
-        QtGui.QMainWindow.__init__(self)
-
-        self.setWindowTitle(LP_NAME)
-        self.resize(LP_WIDTH, LP_HEIGHT)
-        self.center()
-
-        # Menu
-        self.exit = QtGui.QAction(QtGui.QIcon('icons/exit.png'), 'Exit', self)
-        self.exit.setShortcut('Ctrl+Q')
-        self.connect(self.exit, QtCore.SIGNAL('triggered()'), QtCore.SLOT('close()'))
-        
-        menubar = self.menuBar()
-        file = menubar.addMenu('&File')
-        file.addAction(self.exit)
-
-
-        self.statusBar().showMessage('Ready')
-
-        # Playlist
-        self.playlist = QtGui.QListView()
-        #layout = QtGui.QVBoxLayout()
-        #layout.addWidget(self.playlist) 
-        #self.setLayout(layout)
-
-        self.playlist.addColumn('ID')
-        self.playlist.addColumn('Name')
-
-
-
-    def center(self):
-        screen = QtGui.QDesktopWidget().screenGeometry()
-        size =  self.geometry()
-        self.move((screen.width()-size.width())/2, (screen.height()-size.height())/2)
-
-    def closeEvent(self, event):
-        # Save config
-        pass
-
-
-
-app = QtGui.QApplication(sys.argv)
-widget = Controller()
-widget.show()
-sys.exit(app.exec_())
-"""
 
 LP_PLAYLIST_TEXT = '#17E8F1'
 LP_PLAYLIST_BACKGROUND = '#000000'
@@ -80,9 +32,12 @@ class Menu:
     </ui>'''
       
     def __init__(self):
+        
+        # Creat ui, accelerate keys group
         self.uimanager = gtk.UIManager()
         self.accelgroup = self.uimanager.get_accel_group()
 
+        # Bind 'action' in ui define string or file
         self.actiongroup = gtk.ActionGroup(LP_NAME)
         self.actiongroup.add_actions([('File', None, '_File'),
                                  ('Quit', gtk.STOCK_QUIT, '_Quit', None, '', self.OnQuit),
@@ -93,11 +48,13 @@ class Menu:
                                  ('About', None, '_About', None, '', self.OnAbout),
                                  ])
         self.uimanager.insert_action_group(self.actiongroup, 0)
-
+        
+        # Load ui
         self.uimanager.add_ui_from_string(self.ui)
         self.menubar = self.uimanager.get_widget('/MenuBar')
 
     def OnQuit(self, event):
+        # Fixme: we should call the quit function of main window do some clean work
         gtk.main_quit()
 
     def OnAddDir(self):
@@ -109,10 +66,46 @@ class Menu:
     def OnAbout(self):
         pass
 
+
+class Lyric:
+
+    def __init__(self):
+        self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+        self.window.set_size_request(LP_WIDTH * 2, LP_HEIGHT)
+        self.window.set_position(gtk.WIN_POS_CENTER)
+
+        self.sw = gtk.ScrolledWindow()
+        self.sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        self.textview = gtk.TextView()
+
+        self.textview.set_editable(False)
+        self.textview.set_cursor_visible(False)
+        self.textview.set_justification(gtk.JUSTIFY_CENTER)
+
+        self.textbuffer = self.textview.get_buffer()
+        self.tag = self.textbuffer.create_tag(name=None, background='#000000', foreground='#0000ff')
+        start = self.textbuffer.get_iter_at_line(0)
+        end = self.textbuffer.get_iter_at_line(-1)
+        self.textbuffer.apply_tag(self.tag, start, end)
+
+        self.sw.add(self.textview)
+        self.sw.show()
+        self.textview.show()
+        buf = open('xry-meetu.lyc', 'r').read()
+        self.textbuffer.set_text(buf)
+        
+        vbox = gtk.VBox(False, 0)
+        vbox.pack_start(self.sw, True, True, 1)
+        vbox.show()
+        self.window.add(vbox)
+        
+
+
+
 class Controller:
 
-    # Save config here
     def delete_event(self, widget, event, data=None):
+        # Save config here
         gtk.main_quit()
         return False
 
@@ -143,15 +136,20 @@ class Controller:
 
         self.treeview.set_search_column(0)
         self.column_name.set_sort_column_id(0)
-
+        
+        # Menu
         self.menu = Menu()
         self.window.add_accel_group(self.menu.accelgroup)
 
         vbox = gtk.VBox(False, 0)
         vbox.pack_start(self.menu.menubar, False, False, 1)
-        vbox.pack_start(self.treeview, False, False, 1)
-        vbox.show()
+        vbox.pack_start(self.treeview, True, True, 1)
 
+
+        self.lyric = Lyric()
+        self.lyric.window.show_all()
+
+        vbox.show()
         self.window.add(vbox)
         self.window.show_all()
 
