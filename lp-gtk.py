@@ -63,6 +63,52 @@ sys.exit(app.exec_())
 LP_PLAYLIST_TEXT = '#17E8F1'
 LP_PLAYLIST_BACKGROUND = '#000000'
 
+class Menu:
+    ui = '''<ui>
+    <menubar name="MenuBar">
+      <menu action="File">
+        <menuitem action="Quit"/>
+      </menu>
+      <menu action="Playlist">
+        <menuitem action="AddDir"/>
+        <menuitem action="Clear"/>
+      </menu>
+      <menu action="Help">
+        <menuitem action="About"/>
+      </menu>
+    </menubar>
+    </ui>'''
+      
+    def __init__(self):
+        self.uimanager = gtk.UIManager()
+        self.accelgroup = self.uimanager.get_accel_group()
+
+        self.actiongroup = gtk.ActionGroup(LP_NAME)
+        self.actiongroup.add_actions([('File', None, '_File'),
+                                 ('Quit', gtk.STOCK_QUIT, '_Quit', None, '', self.OnQuit),
+                                 ('Playlist', None, '_Playlist'),
+                                 ('AddDir', None, '_Add Dir', None, '', self.OnAddDir),
+                                 ('Clear', None, '_Clear', None, '', self.OnClear),
+                                 ('Help', None, '_Help'),
+                                 ('About', None, '_About', None, '', self.OnAbout),
+                                 ])
+        self.uimanager.insert_action_group(self.actiongroup, 0)
+
+        self.uimanager.add_ui_from_string(self.ui)
+        self.menubar = self.uimanager.get_widget('/MenuBar')
+
+    def OnQuit(self, event):
+        gtk.main_quit()
+
+    def OnAddDir(self):
+        pass
+
+    def OnClear(self):
+        pass
+
+    def OnAbout(self):
+        pass
+
 class Controller:
 
     # Save config here
@@ -73,9 +119,10 @@ class Controller:
 
     def __init__(self):
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-
         self.window.set_title(LP_NAME)
         self.window.connect("delete_event", self.delete_event)
+        self.window.set_size_request(225, 400)
+        self.window.set_position(gtk.WIN_POS_CENTER)
 
         # PlayList
         self.liststore = gtk.ListStore(str)
@@ -94,20 +141,18 @@ class Controller:
 
         self.treeview.append_column(self.column_name)
 
-
-        #self.column_id.set_attributes(self.cell_id, text=0)
-
-        # make treeview searchable
         self.treeview.set_search_column(0)
-
-        # Allow sorting on the column
         self.column_name.set_sort_column_id(0)
 
-        # Allow drag and drop reordering of rows
-        self.treeview.set_reorderable(True)
+        self.menu = Menu()
+        self.window.add_accel_group(self.menu.accelgroup)
 
-        self.window.add(self.treeview)
+        vbox = gtk.VBox(False, 0)
+        vbox.pack_start(self.menu.menubar, False, False, 1)
+        vbox.pack_start(self.treeview, False, False, 1)
+        vbox.show()
 
+        self.window.add(vbox)
         self.window.show_all()
 
 lp = Controller()
