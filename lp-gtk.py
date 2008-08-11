@@ -8,8 +8,10 @@ pygtk.require('2.0')
 import gtk
 import glob
 from Lyric import *
+from MPlayerSlave import *
 
-LP_NAME = 'ListenPad v0.1' 
+LP_NAME = 'ListenPad' 
+LP_VERSION = 'v0.1'
 LP_WIDTH = 225
 LP_HEIGHT = 400
 
@@ -64,9 +66,23 @@ class Menu:
     def OnClear(self):
         pass
 
-    def OnAbout(self):
-        pass
-
+    def OnAbout(self, event):
+        about = gtk.AboutDialog()
+        infos = {
+            'name': LP_NAME,
+            'version': LP_VERSION,
+            'copyright': '(C) 2008 Chen Zheng',
+            'license': 'GPL v2',
+            'website': 'http://code.google.com/p/listenpad',
+            'authors': ['Chen Zheng <nkthunder@gmail.com>'],
+            'comments': 'ListenPad: a light music player for linux',
+            }
+        for k, v in infos.items():
+            name = 'set_' + k
+            setter = getattr(about, name)
+            setter(v)
+        about.run()
+        about.hide()
 
 class Lyric:
 
@@ -98,7 +114,11 @@ class Lyric:
         vbox.show()
         self.window.add(vbox)
         
-
+    def show_lyric(self, lyric):
+        pos = self.textbuffer.get_start_iter()
+        for timestamp, text in lyric['lyrics']:
+            print timestamp, text
+            self.textbuffer.insert(pos, timestamp + text)
 
 class Controller:
 
@@ -166,10 +186,7 @@ class Controller:
         if l == None:
             print 'Lyric not found'
             return
-        pos = self.lyric_view.textbuffer.get_start_iter()
-        for timestamp, text in l['lyrics']:
-            print timestamp, text
-            self.lyric_view.textbuffer.insert(pos, timestamp + text)
+        self.lyric_view.show_lyric(l)
         
 
 lp = Controller()
