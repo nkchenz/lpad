@@ -17,6 +17,7 @@ LP_HEIGHT = 400
 
 LP_PLAYLIST_TEXT = '#17E8F1'
 LP_PLAYLIST_BACKGROUND = '#000000'
+LP_PLAYLIST_DEFAULT_FILE = '~/.listenpad.list'
 
 class Menu:
     ui = '''<ui>
@@ -170,11 +171,31 @@ class PlayListView:
         files = glob.glob(os.path.join(dir, '*.mp3'))
         for i in range(len(files)):
             self.add_file(files[i])
+
+    def load(self, file):
+        file = os.path.expanduser(file)
+        tmp = {}
+        if os.path.isfile(file):
+            execfile(file, {}, tmp)
+            if 'playlist' in tmp:
+                for f in tmp['playlist']:
+                    self.add_file(f)
+
+    def save(self, file):
+        file = os.path.expanduser(file)
+        f = open(file, 'w+')
+        plist = []
+        for item in self.liststore:
+            plist.append(item[0])
+        f.write('playlist = ' + str(plist))
+        f.close()
+ 
         
 class Controller:
 
     def delete_event(self, widget, event, data=None):
-        # Save config here
+        # Save playlist 
+        self.playlist_view.save(self.default_playlist)
         gtk.main_quit()
         return False
 
@@ -216,7 +237,8 @@ class Controller:
         self.load_conf()
 
     def load_conf(self):
-        self.playlist_view.add_dir('/chenz/music')
+        self.default_playlist = LP_PLAYLIST_DEFAULT_FILE
+        self.playlist_view.load(self.default_playlist)
         self.show_lyric('xry', 'meetu')
 
     def show_lyric(self, artist, title):
