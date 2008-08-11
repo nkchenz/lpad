@@ -215,11 +215,30 @@ class Menu(wx.MenuBar):
         self.parent.OnClose()
 
 
+class Lyric(wx.Frame):
+
+    def __init__(self, parent, id):
+        wx.Frame.__init__(self, parent, id, 'Lyric', size=(LP_WIDTH * 2, LP_HEIGHT))
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        self.widget = wx.StaticText(self, -1, '-ListenPad Lyric-', style=wx.ALIGN_CENTRE)
+        vbox.Add(self.widget, 1, wx.EXPAND |  wx.TOP | wx.BOTTOM, 15)
+        self.SetSizer(vbox)
+
+        self.SetBackgroundColour('#000000')
+        self.SetForegroundColour('#ffffff')
+        self.SetLabel('test')
+        self.SetForegroundColour('#ffffff')
+        #self.SetTextColour('#ffffff')
+        #self.SetHelpText('haha')
+        
 
 class Controller(wx.Frame):
 
     def __init__(self, parent, id, title):
         wx.Frame.__init__(self, parent, id, title, size=(LP_WIDTH, LP_HEIGHT))
+
+        # Lyric
+        self.lyric = Lyric(None, -1)
 
         # Menu
         self.SetMenuBar(Menu(self, ID_MENU))
@@ -237,15 +256,19 @@ class Controller(wx.Frame):
         
         # Play mode checkboxes
         modebox = wx.BoxSizer(wx.HORIZONTAL)
-        self.cb_random = wx.CheckBox(self, -1, 'Random') #,(10, 10))
-        self.cb_loop = wx.CheckBox(self, -1, 'Loop') #,(10, 10))
-        self.cb_repeat = wx.CheckBox(self, -1, 'Repeat') #,(10, 10))
+        self.cb_random = wx.CheckBox(self, -1, 'RD') #,(10, 10))
+        self.cb_loop = wx.CheckBox(self, -1, 'LO') #,(10, 10))
+        self.cb_repeat = wx.CheckBox(self, -1, 'RP') #,(10, 10))
+        self.cb_lyric = wx.CheckBox(self, -1, 'LY') #,(10, 10))
+        self.cb_random.SetHelpText('Random')
         wx.EVT_CHECKBOX(self, self.cb_random.GetId(), self.OnModeRandom)
         wx.EVT_CHECKBOX(self, self.cb_loop.GetId(), self.OnModeLoop)
         wx.EVT_CHECKBOX(self, self.cb_repeat.GetId(), self.OnModeRepeat)
+        wx.EVT_CHECKBOX(self, self.cb_lyric.GetId(), self.OnLyric)
         modebox.Add(self.cb_random, 0, wx.ALIGN_RIGHT)
         modebox.Add(self.cb_loop, 0, wx.ALIGN_RIGHT)
         modebox.Add(self.cb_repeat, 0, wx.ALIGN_RIGHT)
+        modebox.Add(self.cb_lyric, 0, wx.ALIGN_RIGHT)
         hbox.Add(modebox, 0, wx.ALIGN_TOP | wx.EXPAND, 3)
 
         # PlayList
@@ -278,6 +301,14 @@ class Controller(wx.Frame):
         self.Centre()
         self.Show()
 
+    
+    def OnLyric(self, event):
+        self.show_lyric = self.cb_lyric.GetValue()
+        if self.show_lyric:
+            self.lyric.Show()
+        else:
+            self.lyric.Hide()
+
     def OnModeRandom(self, envent=None):
         self.player.mode_random = self.cb_random.GetValue()
         self.cb_loop.SetValue(False)
@@ -308,6 +339,7 @@ class Controller(wx.Frame):
         self.player.quit = True
         self.player.notify()
 
+        self.lyric.Destroy()
         self.Destroy()
 
 print 'Main Thread ', os.getpid()
