@@ -162,6 +162,15 @@ class PlayListView:
         self.column_name.set_sort_column_id(0)
         self.treeview.set_headers_visible(False)
 
+        self.treeview.get_selection().set_mode(gtk.SELECTION_SINGLE)
+        self.treeview.connect('row-activated', self.selection)
+
+
+    def selection(self, path, col, item):
+        #self.treeview.get_selection().get_selected()
+        file = self.liststore[col[0]][0]
+        print file
+
     def add_file(self, file):
         print 'Add File:', file
         self.liststore.append([file, os.path.basename(file)])
@@ -221,7 +230,12 @@ class Controller:
         sw.add(self.playlist_view.treeview) 
         vbox.pack_start(sw, True, True, 1)
 
-        # Create Lyric window
+        # Status bar
+        self.status = gtk.Statusbar()  
+        self.status.show()
+        vbox.pack_start(self.status, False, False, 1)
+
+        # Create a separate Lyric window
         self.lyric_view = LyricView()
         x, y = self.window.get_position()
         self.lyric_view.window.move(5 + x + LP_WIDTH, y)
@@ -240,6 +254,7 @@ class Controller:
         self.default_playlist = LP_PLAYLIST_DEFAULT_FILE
         self.playlist_view.load(self.default_playlist)
         self.show_lyric('xry', 'meetu')
+        self.status.push(self.status.get_context_id('Player'), 'Ready')
 
     def show_lyric(self, artist, title):
         l = self.lyric_repo.get_lyric(artist, title)
