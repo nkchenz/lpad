@@ -5,22 +5,30 @@ import re
 
 LYRIC_PATH = '.'
 
-class Lyric(object):
+class LyricRepo(object):
     
     def __init__(self):
         pass
 
-    def lookup_local(self, artist, title):
+    def get_lyric(self, artist, title):
+        """Get lyric by artist and title
+        Return dict
+        """
+        # Find in cache first
         lyric_file = os.path.join(LYRIC_PATH, '%s-%s.lyc' % (artist, title))
         if os.path.isfile(lyric_file):
             data = open(lyric_file, 'r').readlines()
-            return data
+            return self.parse_lyric(data)
         else:
+            # Download from internet
             return None
 
     def parse_lyric(self, data):
+        """Parse lyric file to a dict which contains a 'lyrics' list and its item are
+        tuples of (timestamp, lyric)
+        """
         lyric = {}
-        scripts = {}
+        lyrics = {}
         for line in data:
             # Remove comments and blank lines
             if line.isspace() or line.startswith('#'):
@@ -37,14 +45,14 @@ class Lyric(object):
                 # Parse something like [ar:westlife], [by:foo], [00:12.98]
                 k, _, v = t.partition(':') 
                 if k.isdigit():
-                    scripts[t] = text
+                    lyrics[t] = text
                 else:
                     lyric[k] = v
 
         # Sort lyrics
-        lyric['scripts'] = []
-        for t in sorted(scripts.keys()):
-            lyric['scripts'].append((t, scripts[t]))
+        lyric['lyrics'] = []
+        for t in sorted(lyrics.keys()):
+            lyric['lyrics'].append((t, lyrics[t]))
 
         return lyric
 
@@ -56,9 +64,9 @@ class Lyric(object):
 
 
 if __name__ == '__main__':
-    lyric = Lyric()
+    repo = LyricRepo()
     #l = lyric.local_lookup('周杰伦', '千里之外')
-    l = lyric.lookup_local('xry', 'meetu')
-    for k,v in lyric.parse_lyric(l)['scripts']:
+    l = repo.get_lyric('xry', 'meetu')
+    for k,v in l['lyrics']:
         print k,v 
 

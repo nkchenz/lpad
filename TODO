@@ -1,10 +1,10 @@
+local lyric show
 mplayerslave: 
 
 info: progress bar timer, mp3 meta data
-
 control: stop resume next pre
 
-lyric: show lyric
+lyric search and download
 
 I want to listen: enter song name, we'll find and download it automatically from baidu, google, etc.
 

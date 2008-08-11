@@ -7,6 +7,7 @@ import os
 pygtk.require('2.0')
 import gtk
 import glob
+from Lyric import *
 
 LP_NAME = 'ListenPad v0.1' 
 LP_WIDTH = 225
@@ -72,7 +73,7 @@ class Lyric:
     def __init__(self):
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.set_size_request(LP_WIDTH * 2, LP_HEIGHT)
-        self.window.set_position(gtk.WIN_POS_CENTER)
+        #self.window.set_position(gtk.WIN_POS_CENTER)
 
         self.sw = gtk.ScrolledWindow()
         self.sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
@@ -83,23 +84,20 @@ class Lyric:
         self.textview.set_justification(gtk.JUSTIFY_CENTER)
 
         self.textbuffer = self.textview.get_buffer()
-        self.tag = self.textbuffer.create_tag(name=None, background='#000000', foreground='#0000ff')
-        start = self.textbuffer.get_iter_at_line(0)
-        end = self.textbuffer.get_iter_at_line(-1)
-        self.textbuffer.apply_tag(self.tag, start, end)
+        #self.tag = self.textbuffer.create_tag(name=None, background='#000000', foreground='#0000ff')
+        #start = self.textbuffer.get_iter_at_line(0)
+        #end = self.textbuffer.get_iter_at_line(-1)
+        #self.textbuffer.apply_tag(self.tag, start, end)
 
         self.sw.add(self.textview)
         self.sw.show()
         self.textview.show()
-        buf = open('xry-meetu.lyc', 'r').read()
-        self.textbuffer.set_text(buf)
         
         vbox = gtk.VBox(False, 0)
         vbox.pack_start(self.sw, True, True, 1)
         vbox.show()
         self.window.add(vbox)
         
-
 
 
 class Controller:
@@ -137,21 +135,42 @@ class Controller:
         self.treeview.set_search_column(0)
         self.column_name.set_sort_column_id(0)
         
-        # Menu
+        # Create Menu bar 
         self.menu = Menu()
         self.window.add_accel_group(self.menu.accelgroup)
 
+        # Add menu and playlist to the main window
         vbox = gtk.VBox(False, 0)
         vbox.pack_start(self.menu.menubar, False, False, 1)
-        vbox.pack_start(self.treeview, True, True, 1)
 
+        sw = gtk.ScrolledWindow()
+        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        sw.add(self.treeview) 
+        vbox.pack_start(sw, True, True, 1)
 
-        self.lyric = Lyric()
-        self.lyric.window.show_all()
+        # Create Lyric window
+        self.lyric_view = Lyric()
+        x, y = self.window.get_position()
+        self.lyric_view.window.move(5 + x + LP_WIDTH, y)
+        self.lyric_view.window.show_all()
+        # Get a lyric repo instance
+        self.lyric_repo = LyricRepo()
+        self.show_lyric('xry', 'meetu')
 
         vbox.show()
         self.window.add(vbox)
         self.window.show_all()
+
+    def show_lyric(self, artist, title):
+        l = self.lyric_repo.get_lyric(artist, title)
+        if l == None:
+            print 'Lyric not found'
+            return
+        pos = self.lyric_view.textbuffer.get_start_iter()
+        for timestamp, text in l['lyrics']:
+            print timestamp, text
+            self.lyric_view.textbuffer.insert(pos, timestamp + text)
+        
 
 lp = Controller()
 gtk.main()
