@@ -158,13 +158,24 @@ class PlayListView:
         # text is index of the item in liststore
         self.column_name = gtk.TreeViewColumn('NAME', style, text = 1)
         self.treeview.append_column(self.column_name)
-        self.treeview.set_search_column(0)
+        self.treeview.set_enable_search(False)
+        #self.treeview.set_search_column(0)
         self.column_name.set_sort_column_id(0)
         self.treeview.set_headers_visible(False)
 
         self.treeview.get_selection().set_mode(gtk.SELECTION_SINGLE)
         self.treeview.connect('row-activated', self.selection)
+        self.treeview.connect('key_press_event', self.short_cuts)
 
+    def short_cuts(self, data, event):
+        if event.type == gtk.gdk.KEY_PRESS:
+            key = event.keyval
+            if key == ord('d'):
+                liststore, iter = self.treeview.get_selection().get_selected()
+                print 'Delete:', liststore.get(iter, 0)[0]
+                liststore.remove(iter)
+                # Better to set curse here, so don't need extra click
+                #self.treeview.set_cursor(iter)
 
     def selection(self, path, col, item):
         #self.treeview.get_selection().get_selected()
