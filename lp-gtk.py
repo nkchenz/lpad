@@ -141,7 +141,6 @@ class LyricView:
     def show_lyric(self, lyric):
         pos = self.textbuffer.get_start_iter()
         for timestamp, text in lyric['lyrics']:
-            print timestamp, text
             self.textbuffer.insert(pos, timestamp + text)
 
 class PlayListView:
@@ -163,19 +162,24 @@ class PlayListView:
         self.column_name.set_sort_column_id(0)
         self.treeview.set_headers_visible(False)
 
-        self.treeview.get_selection().set_mode(gtk.SELECTION_SINGLE)
+        self.treeview.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
         self.treeview.connect('row-activated', self.selection)
         self.treeview.connect('key_press_event', self.short_cuts)
 
     def short_cuts(self, data, event):
         if event.type == gtk.gdk.KEY_PRESS:
             key = event.keyval
+
+            # Multiple delete with  'd'
             if key == ord('d'):
-                liststore, iter = self.treeview.get_selection().get_selected()
-                print 'Delete:', liststore.get(iter, 0)[0]
-                liststore.remove(iter)
-                # Better to set curse here, so don't need extra click
-                #self.treeview.set_cursor(iter)
+                liststore, items =  self.treeview.get_selection().get_selected_rows()
+                # Becare with the indexes after delete 
+                i = 0
+                for item in items:
+                    row = item[0] - i
+                    i += 1
+                    print 'Delete:', liststore[row][0]
+                    del liststore[row]
 
     def selection(self, path, col, item):
         #self.treeview.get_selection().get_selected()
@@ -272,6 +276,7 @@ class Controller:
         if l == None:
             print 'Lyric not found'
             return
+        print 'Show Lyric:', artist, title
         self.lyric_view.show_lyric(l)
         
 
