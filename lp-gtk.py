@@ -144,7 +144,7 @@ class DebugWindow:
     def __init__(self):
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.set_size_request(LP_WIDTH * 2, LP_HEIGHT / 2)        
-        self.window.connect("delete_event", self.window.hide)
+        self.window.connect("delete_event", self.hide_on_close)
 
         self.sw = gtk.ScrolledWindow()
         self.sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
@@ -171,6 +171,10 @@ class DebugWindow:
         self.window.show()
         #self.window.hide()
     
+    def hide_on_close(self, a, b):
+        self.window.hide()
+        return True
+
     def log(self, s):
         pos = self.textbuffer.get_end_iter()
         #self.textbuffer.insert(pos, '%s %s\n' % (time.ctime(), s))
@@ -183,7 +187,7 @@ class LyricView:
     def __init__(self):
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.set_size_request(LP_WIDTH * 2, LP_HEIGHT)        
-        self.window.connect("delete_event", self.window.hide)
+        self.window.connect("delete_event", self.hide_on_close)
         #self.window.set_position(gtk.WIN_POS_CENTER)
 
         self.sw = gtk.ScrolledWindow()
@@ -212,7 +216,12 @@ class LyricView:
         vbox.show()
         self.window.add(vbox)
         self.window.set_skip_taskbar_hint(True)
-        
+
+    # Dont care what 'a' 'b' really are
+    def hide_on_close(self, a, b):
+        self.window.hide()
+        return True 
+
     def show_lyric(self, lyric):
         pos = self.textbuffer.get_start_iter()
         for timestamp, text in lyric['lyrics']:
