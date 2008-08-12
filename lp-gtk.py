@@ -141,7 +141,10 @@ class DebugWindow:
         vbox.pack_start(self.sw, True, True, 1)
         vbox.show()
         self.window.add(vbox)
+        # Don't show us at the task list 
+        self.window.set_skip_taskbar_hint(True)
         self.window.show()
+        #self.window.hide()
     
     def log(self, s):
         pos = self.textbuffer.get_end_iter()
@@ -182,6 +185,7 @@ class LyricView:
         vbox.pack_start(self.sw, True, True, 1)
         vbox.show()
         self.window.add(vbox)
+        self.window.set_skip_taskbar_hint(True)
         
     def show_lyric(self, lyric):
         pos = self.textbuffer.get_start_iter()

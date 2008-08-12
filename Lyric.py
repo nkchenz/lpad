@@ -3,7 +3,7 @@
 import os.path
 import re
 
-LYRIC_PATH = '.'
+LYRIC_PATH = '/home/chenz/code/ListenPad'
 
 class LyricRepo(object):
     
