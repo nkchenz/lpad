@@ -9,6 +9,7 @@ import gtk
 import glob
 from Lyric import *
 from MPlayerSlave import *
+import time
 
 LP_NAME = 'ListenPad' 
 LP_VERSION = 'v0.1'
@@ -18,6 +19,10 @@ LP_HEIGHT = 400
 LP_PLAYLIST_TEXT = '#17E8F1'
 LP_PLAYLIST_BACKGROUND = '#000000'
 LP_PLAYLIST_DEFAULT_FILE = '~/.listenpad.list'
+
+
+def log(s):
+    debug_window.log(s)
 
 class Menu:
     ui = '''<ui>
@@ -108,6 +113,43 @@ class Menu:
         about.run()
         about.hide()
 
+class DebugWindow:
+    """
+    Debug info window
+    """
+    def __init__(self):
+        self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+        self.window.set_size_request(LP_WIDTH * 2, LP_HEIGHT / 2)        
+
+        self.sw = gtk.ScrolledWindow()
+        self.sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        self.textview = gtk.TextView()
+
+        self.textview.set_editable(False)
+        #self.textview.set_cursor_visible(False)
+        #self.textview.set_justification(gtk.JUSTIFY_CENTER)
+
+        self.textbuffer = self.textview.get_buffer()
+        self.textview.modify_base(gtk.STATE_NORMAL, gtk.gdk.color_parse('black'))
+        self.textview.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse('white'))
+
+        self.sw.add(self.textview)
+        self.sw.show()
+        self.textview.show()
+        
+        vbox = gtk.VBox(False, 0)
+        vbox.pack_start(self.sw, True, True, 1)
+        vbox.show()
+        self.window.add(vbox)
+        self.window.show()
+    
+    def log(self, s):
+        pos = self.textbuffer.get_end_iter()
+        #self.textbuffer.insert(pos, '%s %s\n' % (time.ctime(), s))
+        self.textbuffer.insert(pos, '%s\n' % (s))
+        self.textview.scroll_to_iter(self.textbuffer.get_end_iter(), 0, True, 1.0, 0.8) 
+ 
+
 class LyricView:
 
     def __init__(self):
@@ -181,20 +223,20 @@ class PlayListView:
                 for item in items:
                     row = item[0] - i
                     i += 1
-                    print 'Delete:', liststore[row][0]
+                    log('Delete ' + liststore[row][0])
                     del liststore[row]
 
     def selection(self, path, col, item):
         #self.treeview.get_selection().get_selected()
         file = self.liststore[col[0]][0]
-        print file
+        log('Select ' + file)
 
     def add_file(self, file):
-        print 'Add File:', file
+        log('Add File ' + file)
         self.liststore.append([file, os.path.basename(file)])
 
     def add_dir(self, dir):
-        print 'Add Dir:', dir
+        log('Add Dir ' + dir)
         files = glob.glob(os.path.join(dir, '*.mp3'))
         for i in range(len(files)):
             self.add_file(files[i])
@@ -277,11 +319,12 @@ class Controller:
     def show_lyric(self, artist, title):
         l = self.lyric_repo.get_lyric(artist, title)
         if l == None:
-            print 'Lyric not found'
+            log('Lyric not found')
             return
-        print 'Show Lyric:', artist, title
+        log('Show Lyric ' + artist +  title)
         self.lyric_view.show_lyric(l)
         
 
+debug_window = DebugWindow()
 lp = Controller()
 gtk.main()
