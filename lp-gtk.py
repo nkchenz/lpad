@@ -112,7 +112,7 @@ class LyricView:
 
     def __init__(self):
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        self.window.set_size_request(LP_WIDTH * 2, LP_HEIGHT)
+        self.window.set_size_request(LP_WIDTH * 2, LP_HEIGHT)        
         #self.window.set_position(gtk.WIN_POS_CENTER)
 
         self.sw = gtk.ScrolledWindow()
@@ -124,6 +124,9 @@ class LyricView:
         self.textview.set_justification(gtk.JUSTIFY_CENTER)
 
         self.textbuffer = self.textview.get_buffer()
+        self.textview.modify_base(gtk.STATE_NORMAL, gtk.gdk.color_parse('#000000'))
+        self.textview.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse('blue'))
+
         #self.tag = self.textbuffer.create_tag(name=None, background='#000000', foreground='#0000ff')
         #start = self.textbuffer.get_iter_at_line(0)
         #end = self.textbuffer.get_iter_at_line(-1)
@@ -242,7 +245,7 @@ class Controller:
         self.playlist_view = PlayListView()
         sw = gtk.ScrolledWindow()
         sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        sw.add(self.playlist_view.treeview) 
+        sw.add(self.playlist_view.treeview)
         vbox.pack_start(sw, True, True, 1)
 
         # Status bar
