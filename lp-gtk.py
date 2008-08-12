@@ -22,7 +22,7 @@ LP_PLAYLIST_DEFAULT_FILE = '~/.listenpad.list'
 
 
 def log(s):
-    debug_window.log(s)
+    debug_view.log(s)
 
 class Menu:
     ui = '''<ui>
@@ -35,10 +35,15 @@ class Menu:
         <menuitem action="AddFile"/>
         <menuitem action="Clear"/>
       </menu>
-      <menu action="Help">
+      <menu action="View">
+        <menuitem action="Debug"/>
+        <menuitem action="Lyric"/>
+        <separator/>
+      </menu>
+     <menu action="Help">
         <menuitem action="About"/>
       </menu>
-    </menubar>
+     </menubar>
     </ui>'''
       
     def __init__(self, proxy):
@@ -56,13 +61,32 @@ class Menu:
             ('AddDir', None, '_Add Dir', None, '', self.OnAddDir),
             ('AddFile', None, '_Add File', None, '', self.OnAddFile),
             ('Clear', None, '_Clear', None, '', self.OnClear),
+            ('View', None, '_View'),
             ('Help', None, '_Help'),
             ('About', None, '_About', None, '', self.OnAbout),])
+
+        # Create a ToggleAction, etc.
+        self.actiongroup.add_toggle_actions([('Debug', None, '_Debug', '', 'Show Debug Window', self.OnDebug),
+                                        ('Lyric', None, '_Lyric', '', 'Show Lyric Window', self.OnLyric),])
+
         self.uimanager.insert_action_group(self.actiongroup, 0)
         
         # Load ui
         self.uimanager.add_ui_from_string(self.ui)
         self.menubar = self.uimanager.get_widget('/MenuBar')
+
+    def OnDebug(self, event):
+        if event.get_active():
+            self.proxy.debug_view.window.show_all()
+        else:
+            self.proxy.debug_view.window.hide()
+
+
+    def OnLyric(self, event):
+        if event.get_active():
+            self.proxy.lyric_view.window.show_all()
+        else:
+            self.proxy.lyric_view.window.hide()
 
     def OnQuit(self, event):
         # Fixme: we should call the quit function of main window do some clean work
@@ -120,6 +144,7 @@ class DebugWindow:
     def __init__(self):
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.set_size_request(LP_WIDTH * 2, LP_HEIGHT / 2)        
+        self.window.connect("delete_event", self.window.hide)
 
         self.sw = gtk.ScrolledWindow()
         self.sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
@@ -158,6 +183,7 @@ class LyricView:
     def __init__(self):
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.set_size_request(LP_WIDTH * 2, LP_HEIGHT)        
+        self.window.connect("delete_event", self.window.hide)
         #self.window.set_position(gtk.WIN_POS_CENTER)
 
         self.sw = gtk.ScrolledWindow()
@@ -307,6 +333,9 @@ class Controller:
         # Get a lyric repo instance
         self.lyric_repo = LyricRepo()
 
+        # Debug window
+        self.debug_view = debug_view
+        
         vbox.show()
         self.window.add(vbox)
         self.window.show_all()
@@ -329,6 +358,6 @@ class Controller:
         self.lyric_view.show_lyric(l)
         
 
-debug_window = DebugWindow()
+debug_view = DebugWindow()
 lp = Controller()
 gtk.main()
