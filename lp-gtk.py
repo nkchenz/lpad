@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#encoding: utf8
 
 # example treeviewcolumn.py
 
@@ -6,6 +7,7 @@ import pygtk
 import os
 pygtk.require('2.0')
 import gtk
+import gobject
 import glob
 from Lyric import *
 from MPlayerSlave import *
@@ -304,9 +306,26 @@ class Controller:
     def delete_event(self, widget, event, data=None):
         # Save playlist 
         self.playlist_view.save(self.default_playlist)
+
+        gobject.source_remove(self.timer)
+        self.timer = None
+
         gtk.main_quit()
         return False
 
+    def format_seconds(self, sec):
+        return '%02d:%02d' % (sec/60, sec%60)
+
+    def progress_time_update(self):
+        self.progress_time.set_text('%s/%s' %(self.format_seconds(self.meta_pos), self.format_seconds(self.meta_total)))
+
+    def progress_update(self, p):
+        self.meta_pos += 1
+        if self.meta_pos >= self.meta_total:
+            self.meta_pos = 0
+        value = p.progress_bar.set_fraction(float(self.meta_pos) / self.meta_total)
+        self.progress_time_update()
+        return True
 
     def __init__(self):
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
@@ -315,14 +334,40 @@ class Controller:
         self.window.set_size_request(225, 400)
         self.window.set_position(gtk.WIN_POS_CENTER)
 
+        self.tooltips = gtk.Tooltips()
         vbox = gtk.VBox(False, 0)
         
         # Create Menu bar 
         self.menu = Menu(self)
         self.window.add_accel_group(self.menu.accelgroup)
         vbox.pack_start(self.menu.menubar, False, False, 1)
+        
+        # Time info and meta
+        hbox = gtk.HBox(False, 0)
+        self.progress_time = gtk.Label()
+        #self.process_time.set_text('01:32/04:56')
+        self.meta = gtk.Label()
+        self.meta.set_text('千里之外 192kbs')
+        hbox.pack_start(self.progress_time, False, False, 1)
+        hbox.pack_start(self.meta, False, False, 1)
+        vbox.pack_start(hbox, False, False, 1)
 
-        self.tooltips = gtk.Tooltips()
+        # Process bar
+        self.progress_bar = gtk.ProgressBar()
+        vbox.pack_start(self.progress_bar, False, False, 1)
+        self.timer = gobject.timeout_add(1000, self.progress_update, self)
+       
+        # Control buttons 
+        hbox = gtk.HBox(False, 0)
+        button = gtk.ToolButton(gtk.STOCK_MEDIA_PLAY)
+        hbox.pack_start(button, False, False, 1)
+        button = gtk.ToolButton(gtk.STOCK_MEDIA_NEXT)
+        hbox.pack_start(button, False, False, 1)
+        button = gtk.ToolButton(gtk.STOCK_MEDIA_STOP)
+        hbox.pack_start(button, False, False, 1)
+        vbox.pack_start(hbox, False, False, 1)
+
+        # Check boxes
         hbox = gtk.HBox(False, 0)
 
         def check_box(name, tip):
@@ -379,6 +424,10 @@ class Controller:
         self.playlist_view.load(self.default_playlist)
         self.show_lyric('xry', 'meetu')
         #self.status.push(self.status.get_context_id('Player'), 'Ready')
+
+        self.meta_total = 296
+        self.meta_pos = 0
+        self.progress_time_update()
 
     def show_lyric(self, artist, title):
         l = self.lyric_repo.get_lyric(artist, title)
