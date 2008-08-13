@@ -322,6 +322,22 @@ class Controller:
         self.window.add_accel_group(self.menu.accelgroup)
         vbox.pack_start(self.menu.menubar, False, False, 1)
 
+        self.tooltips = gtk.Tooltips()
+        hbox = gtk.HBox(False, 0)
+
+        def check_box(name, tip):
+            button = gtk.CheckButton(name)
+            self.tooltips.set_tip(button, tip)
+            hbox.pack_end(button, False, False, 1)
+            button.connect("toggled", self.check_box_callback, name)
+
+        check_box('R', 'Repeat a single song')
+        check_box('L', 'Loop the whole playlist')
+        check_box('S', 'Shuffle playing')
+
+        vbox.pack_start(hbox, False, False, 1)
+        #self.shuffle_button.connect("toggled", self.callback, "check button 1")
+
         # PlayList
         self.playlist_view = PlayListView()
         sw = gtk.ScrolledWindow()
@@ -330,9 +346,9 @@ class Controller:
         vbox.pack_start(sw, True, True, 1)
 
         # Status bar
-        self.status = gtk.Statusbar()  
-        self.status.show()
-        vbox.pack_start(self.status, False, False, 1)
+        #self.status = gtk.Statusbar()  
+        #self.status.show()
+        #vbox.pack_start(self.status, False, False, 1)
 
         # Create a separate Lyric window
         self.lyric_view = LyricView()
@@ -352,11 +368,17 @@ class Controller:
         # Load configuration
         self.load_conf()
 
+    def check_box_callback(self, widget, data):
+        name = data +'_mode'
+        value = widget.get_active()
+        log('%s %s' % (name, ('off', 'on')[value]))
+        setattr(self, name, value)
+
     def load_conf(self):
         self.default_playlist = LP_PLAYLIST_DEFAULT_FILE
         self.playlist_view.load(self.default_playlist)
         self.show_lyric('xry', 'meetu')
-        self.status.push(self.status.get_context_id('Player'), 'Ready')
+        #self.status.push(self.status.get_context_id('Player'), 'Ready')
 
     def show_lyric(self, artist, title):
         l = self.lyric_repo.get_lyric(artist, title)
