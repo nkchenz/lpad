@@ -300,6 +300,99 @@ class PlayListView:
         f.write('playlist = ' + str(plist))
         f.close()
  
+
+class Player:
+
+    def __init__(self):
+        view = gtk.VBox(False, 0)
+
+        # Time info and meta
+        hbox = gtk.HBox(False, 0)
+        self.meta_pos_view = gtk.Label()
+        self.meta = gtk.Label()
+        hbox.pack_start(self.meta_pos_view, False, False, 1)
+        hbox.pack_start(self.meta, False, False, 1)
+        view.pack_start(hbox, False, False, 1)
+
+        # Process bar,  assume data is $name, view is $name_view
+        self.progress = gtk.Adjustment(0.0, 0.0, 101.0, 0.001, 1.0, 1.0)
+        self.progress.connect("value_changed", self.progress_value_changed)
+        self.progress_view = gtk.HScale(self.progress)
+        self.progress_view.set_draw_value(False)
+        view.pack_start(self.progress_view, False, False, 1)
+        self.timer = gobject.timeout_add(1000, self.timer_callback, self)
+       
+        # For callback handler, we name it as $object_$event
+        self.progress_view.connect('button-release-event', self.progress_view_button_release_event)
+        self.progress_view.connect('button-press-event', self.progress_view_button_press_event)
+
+        # Control buttons 
+        hbox = gtk.HBox(False, 0)
+        button = gtk.ToolButton(gtk.STOCK_MEDIA_PLAY)
+        hbox.pack_start(button, False, False, 1)
+        button = gtk.ToolButton(gtk.STOCK_MEDIA_NEXT)
+        hbox.pack_start(button, False, False, 1)
+        button = gtk.ToolButton(gtk.STOCK_MEDIA_STOP)
+        hbox.pack_start(button, False, False, 1)
+
+        self.tooltips = gtk.Tooltips()
+
+        # Check boxes for play mode
+        def check_box(name, tip):
+            button = gtk.CheckButton(name)
+            self.tooltips.set_tip(button, tip)
+            hbox.pack_end(button, False, False, 1)
+            button.connect("toggled", self.check_box_callback, name)
+
+        check_box('R', 'Repeat a single song')
+        check_box('L', 'Loop the whole playlist')
+        check_box('S', 'Shuffle playing')
+
+        view.pack_start(hbox, False, False, 1)
+        self.view = view
+        self.timer_enable = False
+
+    def check_box_callback(self, widget, data):
+        name = data +'_mode'
+        value = widget.get_active()
+        log('%s %s' % (name, ('off', 'on')[value]))
+        setattr(self, name, value)
+
+    def format_seconds(self, sec):
+        return '%02d:%02d' % (sec/60, sec%60)
+
+    def meta_pos_view_update(self):
+        self.meta_pos_view.set_text('%s/%s' %(self.format_seconds(self.meta_pos), self.format_seconds(self.meta_total)))
+
+    def progress_value_changed(self, data):
+        # Only update time info when seeking
+        if not self.timer_enable:
+            self.meta_pos = int(self.progress.get_value() / 100 * self.meta_total)
+            self.meta_pos_view_update()
+
+    def progress_view_button_release_event(self, event, data):
+        log('Seek end')
+        # Re enable timer
+        self.timer_enable = True
+
+    def progress_view_button_press_event(self, event, data):
+        log('Seek begin')
+        # Disable timer while seeking
+        self.timer_enable = False
+
+    def timer_callback(self, p):
+        """one second timer callback"""
+        if not self.timer_enable:
+            return True
+        self.meta_pos += 1
+        if self.meta_pos >= self.meta_total:
+            self.meta_pos = 0
+        self.progress.set_value(float(self.meta_pos) / self.meta_total * 100) 
+        #value = p.progress_bar.set_fraction(float(self.meta_pos) / self.meta_total)
+        # Time info has been update in progress_adjustment_update
+        self.meta_pos_view_update()
+        return True
+    
         
 class Controller:
 
@@ -307,44 +400,11 @@ class Controller:
         # Save playlist 
         self.playlist_view.save(self.default_playlist)
 
-        gobject.source_remove(self.timer)
-        self.timer = None
+        gobject.source_remove(self.player.timer)
+        self.player.timer = None
 
         gtk.main_quit()
         return False
-
-    def format_seconds(self, sec):
-        return '%02d:%02d' % (sec/60, sec%60)
-
-    def progress_time_update(self):
-        self.progress_time.set_text('%s/%s' %(self.format_seconds(self.meta_pos), self.format_seconds(self.meta_total)))
-
-    def progress_adjustment_update(self, data):
-        # Only update time info when seeking
-        if not self.timer_enable:
-            self.meta_pos = int(self.progress_adjustment.get_value() / 100 * self.meta_total)
-            self.progress_time_update()
-
-    def progress_hscale_seek_end(self, event, data):
-        log('Seek end')
-        self.timer_enable = True
-
-    def progress_hscale_seek_begin(self, event, data):
-        log('Seek begin')
-        self.timer_enable = False
-
-    def timer_update(self, p):
-        """one second timer callback"""
-        if not self.timer_enable:
-            return True
-        self.meta_pos += 1
-        if self.meta_pos >= self.meta_total:
-            self.meta_pos = 0
-        self.progress_adjustment.set_value(float(self.meta_pos) / self.meta_total * 100) 
-        #value = p.progress_bar.set_fraction(float(self.meta_pos) / self.meta_total)
-        # Time info has been update in progress_adjustment_update
-        self.progress_time_update()
-        return True
 
     def __init__(self):
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
@@ -361,52 +421,10 @@ class Controller:
         self.window.add_accel_group(self.menu.accelgroup)
         vbox.pack_start(self.menu.menubar, False, False, 1)
         
-        # Time info and meta
-        hbox = gtk.HBox(False, 0)
-        self.progress_time = gtk.Label()
-        #self.process_time.set_text('01:32/04:56')
-        self.meta = gtk.Label()
-        self.meta.set_text('千里之外 192kbs')
-        hbox.pack_start(self.progress_time, False, False, 1)
-        hbox.pack_start(self.meta, False, False, 1)
-        vbox.pack_start(hbox, False, False, 1)
+        # Player
+        self.player = Player()
+        vbox.pack_start(self.player.view, False, False, 1)
 
-        # Process bar
-        self.progress_adjustment = gtk.Adjustment(0.0, 0.0, 101.0, 0.001, 1.0, 1.0)
-        self.progress_adjustment.connect("value_changed", self.progress_adjustment_update)
-        self.progress_hscale =  gtk.HScale(self.progress_adjustment)
-        self.progress_hscale.set_draw_value(False)
-        vbox.pack_start(self.progress_hscale, False, False, 1)
-        self.timer = gobject.timeout_add(1000, self.timer_update, self)
-       
-        self.progress_hscale.connect('button-release-event', self.progress_hscale_seek_end)
-        self.progress_hscale.connect('button-press-event', self.progress_hscale_seek_begin)
-
-        # Control buttons 
-        hbox = gtk.HBox(False, 0)
-        button = gtk.ToolButton(gtk.STOCK_MEDIA_PLAY)
-        hbox.pack_start(button, False, False, 1)
-        button = gtk.ToolButton(gtk.STOCK_MEDIA_NEXT)
-        hbox.pack_start(button, False, False, 1)
-        button = gtk.ToolButton(gtk.STOCK_MEDIA_STOP)
-        hbox.pack_start(button, False, False, 1)
-        #vbox.pack_start(hbox, False, False, 1)
-
-        # Check boxes
-        #hbox = gtk.HBox(False, 0)
-
-        def check_box(name, tip):
-            button = gtk.CheckButton(name)
-            self.tooltips.set_tip(button, tip)
-            hbox.pack_end(button, False, False, 1)
-            button.connect("toggled", self.check_box_callback, name)
-
-        check_box('R', 'Repeat a single song')
-        check_box('L', 'Loop the whole playlist')
-        check_box('S', 'Shuffle playing')
-
-        vbox.pack_start(hbox, False, False, 1)
-        #self.shuffle_button.connect("toggled", self.callback, "check button 1")
 
         # PlayList
         self.playlist_view = PlayListView()
@@ -438,22 +456,15 @@ class Controller:
         # Load configuration
         self.load_conf()
 
-    def check_box_callback(self, widget, data):
-        name = data +'_mode'
-        value = widget.get_active()
-        log('%s %s' % (name, ('off', 'on')[value]))
-        setattr(self, name, value)
-
     def load_conf(self):
         self.default_playlist = LP_PLAYLIST_DEFAULT_FILE
         self.playlist_view.load(self.default_playlist)
         self.show_lyric('xry', 'meetu')
         #self.status.push(self.status.get_context_id('Player'), 'Ready')
 
-        self.meta_total = 296
-        self.meta_pos = 0
-        self.progress_time_update()
-        self.timer_enable = True
+        self.player.meta_total = 296
+        self.player.meta_pos = 0
+        self.player.timer_enable = True
 
     def show_lyric(self, artist, title):
         l = self.lyric_repo.get_lyric(artist, title)
