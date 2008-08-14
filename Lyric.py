@@ -3,11 +3,11 @@
 import os.path
 import re
 
-LYRIC_PATH = '/home/chenz/code/ListenPad'
 
 class LyricRepo(object):
     
-    def __init__(self):
+    def __init__(self, path):
+        self.path = path
         pass
 
     def get_lyric(self, artist, title):
@@ -15,7 +15,7 @@ class LyricRepo(object):
         Return dict
         """
         # Find in cache first
-        lyric_file = os.path.join(LYRIC_PATH, '%s-%s.lyc' % (artist, title))
+        lyric_file = os.path.join(self.path, '%s-%s.lyc' % (artist, title))
         if os.path.isfile(lyric_file):
             data = open(lyric_file, 'r').readlines()
             return self.parse_lyric(data)

@@ -12,6 +12,7 @@ import glob
 from Lyric import *
 from MPlayerSlave import *
 import time
+import urllib
 
 LP_NAME = 'ListenPad' 
 LP_VERSION = 'v0.1'
@@ -22,10 +23,12 @@ LP_PLAYLIST_TEXT = '#17E8F1'
 LP_PLAYLIST_BACKGROUND = '#000000'
 LP_PLAYLIST_DEFAULT_FILE = '~/.listenpad.list'
 
-import urllib
+LYRIC_REPO_PATH = '/home/chenz/code/ListenPad'
 
+
+# For drag and drop files to playlist
 TARGET_TYPE_URI_LIST = 80
-dnd_list = [ ( 'text/uri-list', 0, TARGET_TYPE_URI_LIST ) ]
+dnd_list = [('text/uri-list', 0, TARGET_TYPE_URI_LIST)]
 
 def get_file_path_from_dnd_dropped_uri(uri):
     path = urllib.url2pathname(uri) # escape special chars
@@ -500,7 +503,7 @@ class Controller:
         self.lyric_view.window.move(5 + x + LP_WIDTH, y)
         self.lyric_view.window.show_all()
         # Get a lyric repo instance
-        self.lyric_repo = LyricRepo()
+        self.lyric_repo = LyricRepo(LYRIC_REPO_PATH)
 
         # Debug window
         self.debug_view = debug_view

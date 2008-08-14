@@ -6,6 +6,10 @@ CopyRight (C) 2008 Chen Zheng <nkthunder@gmail.com>
 
 Distributed under terms of GPL v2
 """
+import subprocess
+import os
+
+MPLAYER_CMD = 'mplayer -slave -quiet -idle'
 
 class MPlayerSlave(object):
     """
@@ -13,7 +17,6 @@ class MPlayerSlave(object):
     plan yet
     
     Examples:
-        
 
         
     SLAVE MODE PROTOCOL
@@ -21,20 +24,16 @@ class MPlayerSlave(object):
     """
 
     def __init__(self):
-        """
-        Create a mplayer slave, wait in idle mode when no songs to play. 
-
-        """
+        # Create a mplayer slave, wait in idle mode when no songs to play. 
+        PIPE = -1
+        self.mplayer = subprocess.Popen(MPLAYER_CMD, shell = True, stdin = PIPE, stdout = PIPE, stderr = PIPE, bufsize = 1)
 
     def command(self, cmd):
-        """Run cmd and return output, it's a common interface"""
+        #Dont expect for output, because some cmds have no output at all
+        print cmd
+        return self.mplayer.stdin.write(cmd +'\n')
 
-    def loadfile(self, file):
-        """
-        Stop current song and start playing a new song
-        """
-
-    def get_audio_info(self):
+    def get_meta(self):
         """
         Get meta infos of current audio playing, return a dict 
         
@@ -56,36 +55,62 @@ class MPlayerSlave(object):
         ANS_PERCENT_POSITION=85
         get_time_length
         ANS_LENGTH=287.00
+        """
+        meta = {
+            'bitrate': self.get_var('audio_bitrate'),
+            'codec': self.get_var('audio_codec'),
+            'samples': self.get_var('audio_samples'),
 
-        """
-        
-    def seek_(self, value, type):
-        """
-        Seek position
-            0 is a relative seek of +/- <value> seconds (default).
-            1 is a seek to <value> % in the movie.
-            2 is a seek to an absolute position of <value> seconds.
+            'album': self.get_var('meta_album'),
+            'artist': self.get_var('meta_artist'),
+            'comment': self.get_var('meta_comment'),
+            'title': self.get_var('meta_title'),
+            'length': self.get_var('time_length', 'LENGTH'),
+            }
 
-        """
+        return meta 
 
+    # mute, pause, quit, stop, 
+    # seek seconds 2
 
-    def mute(self, value):
-        """
-        Tune sound volum
-        """
+    def send(self, cmd):
+        # Send cmd to mplayer
+        self.command(cmd)
+
+    def get_var(self, var, name = None):
+        # Output format: ANS_META_ARTIST='F.I.R.', return the value of var
+        #   get_meta_artist
+        #   ANS_META_ARTIST='F.I.R.
+        #   get_time_length
+        #   ANS_LENGTH=287.00
+        # Normally, cmd is get_$var, var name in output is ANS_$var.upper().
+        # But if it's irregular, you must specify name explicitly.
+        cmd = 'get_' + var
+        varname = 'ANS_'
+        self.command(cmd)
+        if name:
+            varname += name
+        else:
+            varname += var.upper()
+        while True:
+            line = self.mplayer.stdout.readline()
+            if line.startswith(varname + '='):
+                return line.split('=', 1)[1].strip('\'\n')
+
+if __name__ == '__main__':
+    m = MPlayerSlave() 
+    print 'hello'
+    import time
+    m.send('loadfile /chenz/music/fir.mp3')
+    time.sleep(3)
     
-    def pause(self):
-        """Pause/unpause the playback"""
+    print m.get_var('percent_pos', 'PERCENT_POSITION')
+    print m.get_var('meta_artist')
+    m.send('pause')
+    time.sleep(5)
+    m.send('pause')
+    print m.get_meta()
 
-    def stop(self):
-        """Stop playing current file"""
+    time.sleep(10)
+    m.send('quit')
 
-    def get_percent_pos(self):
-        """
-        Return current percent position of the song
-        """
-
-    def quit(self):
-        """
-        Quit process 
-        """
