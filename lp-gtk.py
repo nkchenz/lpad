@@ -319,11 +319,30 @@ class Controller:
     def progress_time_update(self):
         self.progress_time.set_text('%s/%s' %(self.format_seconds(self.meta_pos), self.format_seconds(self.meta_total)))
 
-    def progress_update(self, p):
+    def progress_adjustment_update(self, data):
+        # Only update time info when seeking
+        if not self.timer_enable:
+            self.meta_pos = int(self.progress_adjustment.get_value() / 100 * self.meta_total)
+            self.progress_time_update()
+
+    def progress_hscale_seek_end(self, event, data):
+        log('Seek end')
+        self.timer_enable = True
+
+    def progress_hscale_seek_begin(self, event, data):
+        log('Seek begin')
+        self.timer_enable = False
+
+    def timer_update(self, p):
+        """one second timer callback"""
+        if not self.timer_enable:
+            return True
         self.meta_pos += 1
         if self.meta_pos >= self.meta_total:
             self.meta_pos = 0
-        value = p.progress_bar.set_fraction(float(self.meta_pos) / self.meta_total)
+        self.progress_adjustment.set_value(float(self.meta_pos) / self.meta_total * 100) 
+        #value = p.progress_bar.set_fraction(float(self.meta_pos) / self.meta_total)
+        # Time info has been update in progress_adjustment_update
         self.progress_time_update()
         return True
 
@@ -353,10 +372,16 @@ class Controller:
         vbox.pack_start(hbox, False, False, 1)
 
         # Process bar
-        self.progress_bar = gtk.ProgressBar()
-        vbox.pack_start(self.progress_bar, False, False, 1)
-        self.timer = gobject.timeout_add(1000, self.progress_update, self)
+        self.progress_adjustment = gtk.Adjustment(0.0, 0.0, 101.0, 0.001, 1.0, 1.0)
+        self.progress_adjustment.connect("value_changed", self.progress_adjustment_update)
+        self.progress_hscale =  gtk.HScale(self.progress_adjustment)
+        self.progress_hscale.set_draw_value(False)
+        vbox.pack_start(self.progress_hscale, False, False, 1)
+        self.timer = gobject.timeout_add(1000, self.timer_update, self)
        
+        self.progress_hscale.connect('button-release-event', self.progress_hscale_seek_end)
+        self.progress_hscale.connect('button-press-event', self.progress_hscale_seek_begin)
+
         # Control buttons 
         hbox = gtk.HBox(False, 0)
         button = gtk.ToolButton(gtk.STOCK_MEDIA_PLAY)
@@ -365,10 +390,10 @@ class Controller:
         hbox.pack_start(button, False, False, 1)
         button = gtk.ToolButton(gtk.STOCK_MEDIA_STOP)
         hbox.pack_start(button, False, False, 1)
-        vbox.pack_start(hbox, False, False, 1)
+        #vbox.pack_start(hbox, False, False, 1)
 
         # Check boxes
-        hbox = gtk.HBox(False, 0)
+        #hbox = gtk.HBox(False, 0)
 
         def check_box(name, tip):
             button = gtk.CheckButton(name)
@@ -428,6 +453,7 @@ class Controller:
         self.meta_total = 296
         self.meta_pos = 0
         self.progress_time_update()
+        self.timer_enable = True
 
     def show_lyric(self, artist, title):
         l = self.lyric_repo.get_lyric(artist, title)
