@@ -22,6 +22,23 @@ LP_PLAYLIST_TEXT = '#17E8F1'
 LP_PLAYLIST_BACKGROUND = '#000000'
 LP_PLAYLIST_DEFAULT_FILE = '~/.listenpad.list'
 
+import urllib
+
+TARGET_TYPE_URI_LIST = 80
+dnd_list = [ ( 'text/uri-list', 0, TARGET_TYPE_URI_LIST ) ]
+
+def get_file_path_from_dnd_dropped_uri(uri):
+    path = urllib.url2pathname(uri) # escape special chars
+    path = path.strip('\r\n\x00') # remove \r\n and NULL
+
+    # get the path to file
+    if path.startswith('file:\\\\\\'): # windows
+            path = path[8:] # 8 is len('file:///')
+    elif path.startswith('file://'): # nautilus, rox
+            path = path[7:] # 7 is len('file://')
+    elif path.startswith('file:'): # xffm
+            path = path[5:] # 5 is len('file:')
+    return path
 
 def log(s):
     debug_view.log(s)
@@ -252,6 +269,18 @@ class PlayListView:
         self.treeview.connect('row-activated', self.selection)
         self.treeview.connect('key_press_event', self.short_cuts)
 
+        self.treeview.connect('drag_data_received', self.on_drag_data_received)
+        self.treeview.drag_dest_set(gtk.DEST_DEFAULT_MOTION | gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_DROP,
+                                     dnd_list, gtk.gdk.ACTION_COPY)
+
+    def on_drag_data_received(self, widget, context, x, y, selection, target_type, timestamp):
+        if target_type == TARGET_TYPE_URI_LIST:
+                uri = selection.data.strip()
+                log('uri: %s' % uri)
+                uri_splitted = uri.split() # we may have more than one file dropped
+                for uri in uri_splitted:
+                        self.add(get_file_path_from_dnd_dropped_uri(uri))
+
     def short_cuts(self, data, event):
         if event.type == gtk.gdk.KEY_PRESS:
             key = event.keyval
@@ -267,21 +296,34 @@ class PlayListView:
                     log('Delete ' + liststore[row][0])
                     del liststore[row]
 
+    def check_file(self, file):
+        # If file exists and type is supportted, return True. Else return False
+        self.support_types = ['.mp3', '.ape', '.flac', '.ogg']
+        return os.path.isfile(file) and os.path.splitext(file)[1] in self.support_types
+
     def selection(self, path, col, item):
         #self.treeview.get_selection().get_selected()
         file = self.liststore[col[0]][0]
         log('Select ' + file)
 
+    def add(self, file):
+        """Universal add file"""
+        if os.path.isdir(file):
+            self.add_dir(file)
+        else:
+            self.add_file(file)
+
     def add_file(self, file):
+        if not self.check_file(file):
+            return
         log('Add File ' + file)
         self.liststore.append([file, os.path.basename(file)])
 
     def add_dir(self, dir):
         log('Add Dir ' + dir)
-        files = glob.glob(os.path.join(dir, '*.mp3'))
-        for i in range(len(files)):
-            self.add_file(files[i])
-
+        for f in os.listdir(dir):
+            self.add(os.path.join(dir, f))
+    
     def load(self, file):
         file = os.path.expanduser(file)
         tmp = {}
@@ -354,7 +396,6 @@ class Player:
         self.view = view
 
     def controll_button_callback(self, widget, data):
-        print widget, data
         if data is 'play':
             status = widget.get_stock_id()
             if status== 'gtk-media-play':
