@@ -304,6 +304,8 @@ class PlayListView:
 class Player:
 
     def __init__(self):
+        self.tooltips = gtk.Tooltips()
+        self.timer_enable = False
         view = gtk.VBox(False, 0)
 
         # Time info and meta
@@ -328,15 +330,15 @@ class Player:
 
         # Control buttons 
         hbox = gtk.HBox(False, 0)
-        button = gtk.ToolButton(gtk.STOCK_MEDIA_PLAY)
-        hbox.pack_start(button, False, False, 1)
-        button = gtk.ToolButton(gtk.STOCK_MEDIA_NEXT)
-        hbox.pack_start(button, False, False, 1)
-        button = gtk.ToolButton(gtk.STOCK_MEDIA_STOP)
-        hbox.pack_start(button, False, False, 1)
-
-        self.tooltips = gtk.Tooltips()
-
+        def controll_button(name):
+            button = gtk.ToolButton(getattr(gtk, 'STOCK_MEDIA_%s' % name.upper()))
+            hbox.pack_start(button, False, False, 1)
+            button.connect('clicked', self.controll_button_callback, name)
+        
+        controll_button('previous')
+        controll_button('play')
+        controll_button('next')
+        
         # Check boxes for play mode
         def check_box(name, tip):
             button = gtk.CheckButton(name)
@@ -350,7 +352,20 @@ class Player:
 
         view.pack_start(hbox, False, False, 1)
         self.view = view
-        self.timer_enable = False
+
+    def controll_button_callback(self, widget, data):
+        print widget, data
+        if data is 'play':
+            status = widget.get_stock_id()
+            if status== 'gtk-media-play':
+                log('play')
+                self.timer_enable = True
+                widget.set_stock_id('gtk-media-pause')
+            else:
+                log('pause')
+                self.timer_enable = False
+                widget.set_stock_id('gtk-media-play')
+        
 
     def check_box_callback(self, widget, data):
         name = data +'_mode'
@@ -464,7 +479,6 @@ class Controller:
 
         self.player.meta_total = 296
         self.player.meta_pos = 0
-        self.player.timer_enable = True
 
     def show_lyric(self, artist, title):
         l = self.lyric_repo.get_lyric(artist, title)
