@@ -11,6 +11,18 @@ import os
 
 MPLAYER_CMD = 'mplayer -slave -quiet -idle  -ao alsa '
 
+def to_utf8(s):
+    encodings = ['utf8', 'gb2312', 'gbk', 'big5', 'gb18030', 'cp950']
+
+    for en in encodings:
+        try:
+            return s.decode(en).encode('utf8')
+        except:
+            pass
+
+    return s
+
+
 class MPlayerSlave(object):
     """
     Audio related commands implemented only, for video I do not have a 
@@ -75,14 +87,10 @@ class MPlayerSlave(object):
             'length': int(float(self.get_var('time_length', 'LENGTH'))),
             }
 
-        # Change gb2312 to utf8
+
         for k, v in meta.items():
-            try:
-                v = v.decode('gb2312').encode('utf8')
-                meta[k] = v
-            except:
-                pass
-            self.log('%s=%s' % (k, v))
+            meta[k] = to_utf8(v)
+            self.log('%s=%s' % (k, meta[k]))
 
         return meta 
 

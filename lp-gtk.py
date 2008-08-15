@@ -44,14 +44,8 @@ def get_file_path_from_dnd_dropped_uri(uri):
             path = path[5:] # 5 is len('file:')
     return path
 
-def gb2utf8(s):
-    try:
-        return s.decode('gb2312').encode('utf8')
-    except:
-        return s
-
 def log(s):
-    debug_view.log(s)
+    debug_view.log(to_utf8(s))
 
 class Menu:
     ui = '''<ui>
