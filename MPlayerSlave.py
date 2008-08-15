@@ -9,7 +9,7 @@ Distributed under terms of GPL v2
 import subprocess
 import os
 
-MPLAYER_CMD = 'mplayer -slave -quiet -idle'
+MPLAYER_CMD = 'mplayer -slave -quiet -idle  -ao alsa '
 
 class MPlayerSlave(object):
     """
@@ -27,10 +27,17 @@ class MPlayerSlave(object):
         # Create a mplayer slave, wait in idle mode when no songs to play. 
         PIPE = -1
         self.mplayer = subprocess.Popen(MPLAYER_CMD, shell = True, stdin = PIPE, stdout = PIPE, stderr = PIPE, bufsize = 1)
+        self.debug = None
+
+    def log(self, s):
+        if self.debug:
+            self.debug.log(s)
+        else:
+            print s
 
     def command(self, cmd):
         #Dont expect for output, because some cmds have no output at all
-        print cmd
+        self.log(cmd)
         return self.mplayer.stdin.write(cmd +'\n')
 
     def get_meta(self):
@@ -65,8 +72,17 @@ class MPlayerSlave(object):
             'artist': self.get_var('meta_artist'),
             'comment': self.get_var('meta_comment'),
             'title': self.get_var('meta_title'),
-            'length': self.get_var('time_length', 'LENGTH'),
+            'length': int(float(self.get_var('time_length', 'LENGTH'))),
             }
+
+        # Change gb2312 to utf8
+        for k, v in meta.items():
+            try:
+                v = v.decode('gb2312').encode('utf8')
+                meta[k] = v
+            except:
+                pass
+            self.log('%s=%s' % (k, v))
 
         return meta 
 
@@ -95,7 +111,7 @@ class MPlayerSlave(object):
         while True:
             line = self.mplayer.stdout.readline()
             if line.startswith(varname + '='):
-                return line.split('=', 1)[1].strip('\'\n')
+                return line.split('=', 1)[1].strip('\' \n')
 
 if __name__ == '__main__':
     m = MPlayerSlave() 

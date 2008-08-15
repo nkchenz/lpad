@@ -13,6 +13,7 @@ from Lyric import *
 from MPlayerSlave import *
 import time
 import urllib
+import random
 
 LP_NAME = 'ListenPad' 
 LP_VERSION = 'v0.1'
@@ -42,6 +43,12 @@ def get_file_path_from_dnd_dropped_uri(uri):
     elif path.startswith('file:'): # xffm
             path = path[5:] # 5 is len('file:')
     return path
+
+def gb2utf8(s):
+    try:
+        return s.decode('gb2312').encode('utf8')
+    except:
+        return s
 
 def log(s):
     debug_view.log(s)
@@ -190,7 +197,7 @@ class DebugWindow:
         self.window.add(vbox)
         # Don't show us at the task list 
         self.window.set_skip_taskbar_hint(True)
-        self.window.show()
+        #self.window.show()
         #self.window.hide()
     
     def hide_on_close(self, a, b):
@@ -250,7 +257,10 @@ class LyricView:
             self.textbuffer.insert(pos, timestamp + text)
 
 class PlayListView:
-    def __init__(self):
+    def __init__(self, proxy):
+
+        self.proxy = proxy # Controller
+
         # Model of this View, real data
         # the first 'str' is abosolute file path
         self.liststore = gtk.ListStore(str, str) 
@@ -267,6 +277,7 @@ class PlayListView:
         #self.treeview.set_search_column(0)
         self.column_name.set_sort_column_id(0)
         self.treeview.set_headers_visible(False)
+        #self.treeview.set_reorderable(True)
 
         self.treeview.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
         self.treeview.connect('row-activated', self.selection)
@@ -305,8 +316,11 @@ class PlayListView:
         return os.path.isfile(file) and os.path.splitext(file)[1] in self.support_types
 
     def selection(self, path, col, item):
-        #self.treeview.get_selection().get_selected()
-        file = self.liststore[col[0]][0]
+        id = col[0]
+        file = self.liststore[id][0]
+        # Stop first
+        #self.proxy.player.play_stop()
+        self.proxy.player.play(file, id)
         log('Select ' + file)
 
     def add(self, file):
@@ -320,7 +334,7 @@ class PlayListView:
         if not self.check_file(file):
             return
         log('Add File ' + file)
-        self.liststore.append([file, os.path.basename(file)])
+        self.liststore.append([file, os.path.splitext(os.path.basename(file))[0]])
 
     def add_dir(self, dir):
         log('Add Dir ' + dir)
@@ -348,7 +362,10 @@ class PlayListView:
 
 class Player:
 
-    def __init__(self):
+    def __init__(self, proxy):
+        
+        self.proxy = proxy
+
         self.tooltips = gtk.Tooltips()
         self.timer_enable = False
         view = gtk.VBox(False, 0)
@@ -367,7 +384,6 @@ class Player:
         self.progress_view = gtk.HScale(self.progress)
         self.progress_view.set_draw_value(False)
         view.pack_start(self.progress_view, False, False, 1)
-        self.timer = gobject.timeout_add(1000, self.timer_callback, self)
        
         # For callback handler, we name it as $object_$event
         self.progress_view.connect('button-release-event', self.progress_view_button_release_event)
@@ -379,10 +395,12 @@ class Player:
             button = gtk.ToolButton(getattr(gtk, 'STOCK_MEDIA_%s' % name.upper()))
             hbox.pack_start(button, False, False, 1)
             button.connect('clicked', self.controll_button_callback, name)
+            # Save a reference here, we need to change 'play' button when double click to play
+            setattr(self, 'cb_' + name, button) 
         
-        controll_button('previous')
-        controll_button('play')
         controll_button('next')
+        controll_button('play')
+        controll_button('stop')
         
         # Check boxes for play mode
         def check_box(name, tip):
@@ -398,16 +416,77 @@ class Player:
         view.pack_start(hbox, False, False, 1)
         self.view = view
 
+        # Create a idle player 
+        self.slave = MPlayerSlave()
+        self.slave.debug = self.proxy.debug_view
+        self.timer = None
+
+        # song id of now playing
+        self.id = None
+        self.R_mode = False
+        self.S_mode = False
+        self.L_mode = False
+
+    def play(self, file, id):
+        log('playing %s %s' % (file, id))
+        self.id = id
+        # Start playing a new song
+        if self.timer:
+            gobject.source_remove(self.timer) # Remove old timer
+        self.timer = gobject.timeout_add(1000, self.timer_callback, self) # Start a new one
+        self.timer_enable = True
+
+        # Deal with special chars
+        file = file.replace('\'', '\\\'')
+        self.slave.send('loadfile \'%s\'' % file)
+
+        # Get info
+        meta = self.slave.get_meta()
+        self.meta_pos = 0
+        self.meta_total = meta['length']
+        self.meta_pos_view_update()
+        title = meta['title']
+        if not title:
+            title = os.path.splitext(os.path.basename(file))[0]
+        self.meta.set_label('%s %s' % (title, meta['bitrate']))
+        self.tooltips.set_tip(self.meta, '%s-%s' % (meta['artist'], meta['album']))
+        self.cb_play.set_stock_id('gtk-media-pause')
+
+        #path = self.proxy.playlist_view.treeview.get_path_at_pos(id, 0)
+        self.proxy.playlist_view.treeview.scroll_to_cell((id, 0))
+        #print path, id
+
+    def play_stop(self):
+        # Clear time info, meta, pbar
+        self.timer_enable = False
+        #self.slave.send('stop')
+        self.progress.set_value(0)
+        self.meta_pos_view.set_label('')
+        self.meta.set_label('')
+        self.cb_play.set_stock_id('gtk-media-play')
+
     def controll_button_callback(self, widget, data):
+        if data is 'stop':
+            log(data)
+            # Cmd 'stop' won't work, so just seek to the end
+            self.slave.send('seek 100 1')
+            self.play_stop()
+
+        if data is 'next':
+            log(data)
+            self.play_next()
+
         if data is 'play':
             status = widget.get_stock_id()
             if status== 'gtk-media-play':
                 log('play')
                 self.timer_enable = True
+                self.slave.send('pause') # Start play. When mplayer slave is idle, no effect 
                 widget.set_stock_id('gtk-media-pause')
             else:
                 log('pause')
                 self.timer_enable = False
+                self.slave.send('pause') # Pause
                 widget.set_stock_id('gtk-media-play')
         
 
@@ -433,6 +512,7 @@ class Player:
         log('Seek end')
         # Re enable timer
         self.timer_enable = True
+        self.slave.send('seek %d 2' % self.meta_pos)
 
     def progress_view_button_press_event(self, event, data):
         log('Seek begin')
@@ -444,14 +524,44 @@ class Player:
         if not self.timer_enable:
             return True
         self.meta_pos += 1
-        if self.meta_pos >= self.meta_total:
-            self.meta_pos = 0
+        if self.meta_pos > self.meta_total:
+            self.play_next()
+            return False
         self.progress.set_value(float(self.meta_pos) / self.meta_total * 100) 
-        #value = p.progress_bar.set_fraction(float(self.meta_pos) / self.meta_total)
-        # Time info has been update in progress_adjustment_update
         self.meta_pos_view_update()
         return True
     
+    def play_next(self):
+        # Choose the next song to play
+        # If has nothing to play, then stop
+        self.play_stop()
+        
+        total = len(self.proxy.playlist_view.liststore)
+        # Repeat mode
+        if self.R_mode:
+            next = self.id
+        else:
+            # Shuffle mode
+            if self.S_mode:
+                random.seed(time.time())
+                next = random.randint(0, total - 1)
+            else:
+                # Sequent mode
+                next = self.id
+                if next == None:
+                    next = 0
+                else:
+                    next += 1
+                # We are at the end of playlist, check if loop 
+                if next >= total:
+                    if self.L_mode:
+                        next = 0 # Loop again
+                    else:
+                        next = None # Done, stop
+
+        # Becareful here, if next=0, it's still valid, so we don't use 'if next:' here
+        if next != None: 
+            self.play(self.proxy.playlist_view.liststore[next][0], next)
         
 class Controller:
 
@@ -462,6 +572,7 @@ class Controller:
         gobject.source_remove(self.player.timer)
         self.player.timer = None
 
+        self.player.slave.send('quit')
         gtk.main_quit()
         return False
 
@@ -474,6 +585,9 @@ class Controller:
 
         self.tooltips = gtk.Tooltips()
         vbox = gtk.VBox(False, 0)
+ 
+        # Debug window
+        self.debug_view = debug_view
         
         # Create Menu bar 
         self.menu = Menu(self)
@@ -481,12 +595,12 @@ class Controller:
         vbox.pack_start(self.menu.menubar, False, False, 1)
         
         # Player
-        self.player = Player()
+        self.player = Player(self)
         vbox.pack_start(self.player.view, False, False, 1)
 
 
         # PlayList
-        self.playlist_view = PlayListView()
+        self.playlist_view = PlayListView(self)
         sw = gtk.ScrolledWindow()
         sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         sw.add(self.playlist_view.treeview)
@@ -501,13 +615,10 @@ class Controller:
         self.lyric_view = LyricView()
         x, y = self.window.get_position()
         self.lyric_view.window.move(5 + x + LP_WIDTH, y)
-        self.lyric_view.window.show_all()
+        #self.lyric_view.window.show_all()
         # Get a lyric repo instance
         self.lyric_repo = LyricRepo(LYRIC_REPO_PATH)
 
-        # Debug window
-        self.debug_view = debug_view
-        
         vbox.show()
         self.window.add(vbox)
         self.window.show_all()
@@ -520,9 +631,6 @@ class Controller:
         self.playlist_view.load(self.default_playlist)
         self.show_lyric('xry', 'meetu')
         #self.status.push(self.status.get_context_id('Player'), 'Ready')
-
-        self.player.meta_total = 296
-        self.player.meta_pos = 0
 
     def show_lyric(self, artist, title):
         l = self.lyric_repo.get_lyric(artist, title)
