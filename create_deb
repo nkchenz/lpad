@@ -1,3 +1,3 @@
-mkdir -p ListenPad-v0.1/usr/local/bin
-cp ListenPad.py ListenPad-v0.1/usr/local/bin/listenpad
+mkdir -p ListenPad-v0.1/usr/share/listenpad
+cp *.py ListenPad-v0.1/usr/share/listenpad
 dpkg-deb -b ListenPad-v0.1
