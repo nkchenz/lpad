@@ -15,6 +15,7 @@ from MPlayerSlave import *
 import time
 import urllib
 import random
+import threading
 
 from misc import *
 
@@ -299,19 +300,55 @@ class LyricView:
         else:
             self.textbuffer.apply_tag_by_name(tag, start, end)
 
+    def search_internet(self, ar, ti):
+        #print 'thread se started'
+        self.add_line('Searching from %s' % self.repo.search_engine)
+        self.add_line('artist: %s title: %s' % (ar, ti))
+        
+        links = self.repo.search_lrc(ar, ti)
+        if not links:
+            self.add_line('Nothing found')
+            return
+
+        for link in links:
+             self.add_line('href=%s artist=%s title=%s' % (link[0], link[2], link[1]))
+        
+        href = links[0][0]
+        self.add_line('Select ' + href)
+        data = self.repo.download_lrc(href)
+        if not data:
+            self.add_line('Download error')
+            return
+        
+        self.add_line('Saving to ' + self.repo.get_path(ar, ti))
+        self.repo.save_lyric(ar, ti, data)
+        self.add_line('Done, reloading')        
+        time.sleep(2)
+        self.show_lyric(ar, ti)
+        return False
+
+    def add_line(self, line):
+        pos = self.textbuffer.get_end_iter()
+        self.textbuffer.insert(pos, line + '\n')
+        log(line)
+
     def show_lyric(self, artist, title):
         # Clear lyric window first
         start, end = self.textbuffer.get_bounds()
         self.textbuffer.delete(start, end)
 
-        pos = self.textbuffer.get_start_iter()
         l = self.repo.get_lyric(artist, title)
         self.lyric = l
         if l == None:
             log('Lyric not found')
-            self.textbuffer.insert(pos, '%s\n没有找到歌词' % self.repo.get_path(artist, title))
+            self.add_line('%s\n没有找到歌词' % self.repo.get_path(artist, title))
+            #gobject.idle_add(self.search_internet)
+            #se = threading.Thread(target = self.search_internet, args=(artist, title))
+            #se.start()
+            gobject.timeout_add(10, self.search_internet, artist, title) # Start a new one
             return
 
+        pos = self.textbuffer.get_start_iter()
         log('Show Lyric ' + artist +  title)
         for timestamp, text in l['lyrics']:
             self.textbuffer.insert(pos, timestamp + text)
@@ -495,9 +532,8 @@ class Player:
             gobject.source_remove(self.timer) # Remove old timer
 
         # Deal with special chars in shell command, yes, it's ugly but very effective
-        file = file.replace('\'', '\\\'')
         self.timer = gobject.timeout_add(1000, self.timer_callback, self) # Start a new one
-        self.slave.send('loadfile \'%s\'' % file)
+        self.slave.send('loadfile %s' % escape_path(file))
         self.timer_enable = True
 
         # Get info

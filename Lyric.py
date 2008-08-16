@@ -42,6 +42,8 @@ class LyricRepo(object):
             if line.isspace() or line.startswith('#'):
                 continue
 
+            line = to_utf8(line)
+
             r = re.search('(\[.*\])(.*)', line)
             if r == None: 
                 continue # Format wrong
@@ -66,7 +68,7 @@ class LyricRepo(object):
 
 
     def search_lrc(self, artist, title):
-        params = urllib.urlencode({'wd': ' '.join([togb2312(title), togb2312(artist), 'filetype:lrc']), 'cl': 3})
+        params = urllib.urlencode({'wd': ' '.join([to_gb2312(title), to_gb2312(artist), 'filetype:lrc']), 'cl': 3})
         url = self.search_engine + '?' + params
         print url
         try:
@@ -114,7 +116,7 @@ class LyricRepo(object):
         #self.servers
         #self.local_path
         path = self.get_path(artist, title)
-        os.system('mkdir -p ' + os.path.dirname(path))
+        os.system('mkdir -p ' + escape_path(os.path.dirname(path)))
         f = open(path, 'w+')
         f.write(data)
         f.close()
