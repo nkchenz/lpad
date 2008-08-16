@@ -580,6 +580,7 @@ class Player:
         self.timer_enable = False
 
     def timer_callback(self, p):
+        start = gobject.get_current_time()
         """one second timer callback"""
         if not self.timer_enable:
             return True
@@ -590,10 +591,13 @@ class Player:
             return False
         self.progress.set_value(float(self.meta_pos) / self.meta_total * 100) 
         self.meta_pos_view_update()
-
         self.proxy.lyric_view.scroll_lyric(self.meta_pos)
 
-        return True
+        end = gobject.get_current_time()
+        losttime = int((end - start) * 1000)
+        # We have lost some time
+        self.timer = gobject.timeout_add(1000 - losttime, self.timer_callback, self) # Start a new one
+        return False
     
     def play_next(self):
         # Choose the next song to play
