@@ -8,6 +8,7 @@ import os
 pygtk.require('2.0')
 import gtk
 import gobject
+import pango
 import glob
 from Lyric import *
 from MPlayerSlave import *
@@ -46,6 +47,20 @@ def get_file_path_from_dnd_dropped_uri(uri):
 
 def log(s):
     debug_view.log(to_utf8(s))
+
+def insert_one_tag_into_buffer(buffer, name, *params):
+    tag = gtk.TextTag(name)
+    while(params):
+        tag.set_property(params[0], params[1])
+        params = params[2:]
+    table = buffer.get_tag_table()
+    table.add(tag)
+
+def create_tags (buffer):
+  insert_one_tag_into_buffer(buffer, "playing", 
+                            "weight", pango.WEIGHT_BOLD,  
+                            "foreground", "white")
+  insert_one_tag_into_buffer(buffer, "none")
 
 class Menu:
     ui = '''<ui>
@@ -224,11 +239,7 @@ class LyricView:
         self.textbuffer = self.textview.get_buffer()
         self.textview.modify_base(gtk.STATE_NORMAL, gtk.gdk.color_parse('#000000'))
         self.textview.modify_text(gtk.STATE_NORMAL, gtk.gdk.color_parse('blue'))
-
-        #self.tag = self.textbuffer.create_tag(name=None, background='#000000', foreground='#0000ff')
-        #start = self.textbuffer.get_iter_at_line(0)
-        #end = self.textbuffer.get_iter_at_line(-1)
-        #self.textbuffer.apply_tag(self.tag, start, end)
+        create_tags(self.textbuffer)
 
         self.sw.add(self.textview)
         self.sw.show()
@@ -238,14 +249,53 @@ class LyricView:
         vbox.pack_start(self.sw, True, True, 1)
         vbox.show()
         self.window.add(vbox)
-        self.window.set_skip_taskbar_hint(True)
+        #self.window.set_skip_taskbar_hint(True)
 
         self.repo = LyricRepo(LYRIC_REPO_PATH)
+        self.last_line = None
 
     # Dont care what 'a' 'b' really are
     def hide_on_close(self, a, b):
         self.window.hide()
         return True 
+
+    def scroll_lyric(self, pos):
+        # No lyric found
+        if not self.lyric:
+            return
+        i = 0
+        for timestamp, text in self.lyric['lyrics']:
+            min, sec = timestamp.split(':')
+            sec = int(min) * 60 + float(sec)
+            if sec >= pos:
+                if sec > pos + 1:
+                    return # Too early
+                break
+            i += 1
+        self.show_line(i)
+
+    def show_line(self, line):
+        # Reset the style of last line
+        if self.last_line != None:
+            self.change_line_style(self.last_line, 'playing', remove = True)
+        self.last_line = line
+
+        self.change_line_style(line, 'playing')
+
+        # Scroll to middle
+        iter = self.textbuffer.get_iter_at_line(line)
+        mark = self.textbuffer.create_mark(None, iter)
+        self.textview.scroll_to_mark(mark, 0, use_align=True, xalign=0.5, yalign=0.5)
+
+    def change_line_style(self, line, tag, remove = False):
+        start = self.textbuffer.get_iter_at_line(line)
+        end = self.textbuffer.get_iter_at_line(line + 1)
+        if end == None:
+            end = self.textbuffer.get_end_iter()
+        if remove:
+            self.textbuffer.remove_tag_by_name(tag, start, end)
+        else:
+            self.textbuffer.apply_tag_by_name(tag, start, end)
 
     def show_lyric(self, artist, title):
         # Clear lyric window first
@@ -254,6 +304,7 @@ class LyricView:
 
         pos = self.textbuffer.get_start_iter()
         l = self.repo.get_lyric(artist, title)
+        self.lyric = l
         if l == None:
             log('Lyric not found')
             self.textbuffer.insert(pos, '%s\n没有找到歌词' % self.repo.get_path(artist, title))
@@ -440,12 +491,12 @@ class Player:
         # Start playing a new song
         if self.timer:
             gobject.source_remove(self.timer) # Remove old timer
-        self.timer = gobject.timeout_add(1000, self.timer_callback, self) # Start a new one
-        self.timer_enable = True
 
         # Deal with special chars in shell command, yes, it's ugly but very effective
         file = file.replace('\'', '\\\'')
+        self.timer = gobject.timeout_add(1000, self.timer_callback, self) # Start a new one
         self.slave.send('loadfile \'%s\'' % file)
+        self.timer_enable = True
 
         # Get info
         meta = self.slave.get_meta()
@@ -539,6 +590,9 @@ class Player:
             return False
         self.progress.set_value(float(self.meta_pos) / self.meta_total * 100) 
         self.meta_pos_view_update()
+
+        self.proxy.lyric_view.scroll_lyric(self.meta_pos)
+
         return True
     
     def play_next(self):
@@ -579,7 +633,8 @@ class Controller:
         # Save playlist 
         self.playlist_view.save(self.default_playlist)
 
-        gobject.source_remove(self.player.timer)
+        if self.player.timer:
+            gobject.source_remove(self.player.timer)
         self.player.timer = None
 
         self.player.slave.send('quit')
@@ -590,6 +645,7 @@ class Controller:
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.set_title(LP_NAME)
         self.window.connect("delete_event", self.delete_event)
+        self.window.connect("focus-in-event", self.focus_in_event)
         self.window.set_size_request(225, 400)
         self.window.set_position(gtk.WIN_POS_CENTER)
 
@@ -635,11 +691,14 @@ class Controller:
         # Load configuration
         self.load_conf()
 
+    # Check to see if we need to show these windows
+    def focus_in_event(self, widget, e):
+        if e.in_:
+            pass
+
     def load_conf(self):
         self.default_playlist = LP_PLAYLIST_DEFAULT_FILE
-        self.playlist_view.load(self.default_playlist)
-
-       
+        self.playlist_view.load(self.default_playlist)   
 
 debug_view = DebugWindow()
 lp = Controller()
