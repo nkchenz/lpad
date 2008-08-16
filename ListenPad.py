@@ -16,6 +16,8 @@ import time
 import urllib
 import random
 
+from misc import *
+
 LP_NAME = 'ListenPad' 
 LP_VERSION = 'v0.1'
 LP_WIDTH = 225

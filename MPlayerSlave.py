@@ -8,20 +8,9 @@ Distributed under terms of GPL v2
 """
 import subprocess
 import os
+from misc import *
 
 MPLAYER_CMD = 'mplayer -slave -quiet -idle  -ao alsa '
-
-def to_utf8(s):
-    encodings = ['utf8', 'gb2312', 'gbk', 'big5', 'gb18030', 'cp950']
-
-    for en in encodings:
-        try:
-            return s.decode(en).encode('utf8')
-        except:
-            pass
-
-    return s
-
 
 class MPlayerSlave(object):
     """

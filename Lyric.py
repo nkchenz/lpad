@@ -2,12 +2,14 @@
 
 import os.path
 import re
-
+import urllib, urllib2
+from misc import *
 
 class LyricRepo(object):
     
     def __init__(self, path):
         self.path = path
+        self.search_engine = 'http://www.baidu.com/s'
         pass
 
     def get_path(self, artist, title):
@@ -62,17 +64,77 @@ class LyricRepo(object):
 
         return lyric
 
-            
-    def download(self, artist, titile):
+
+    def search_lrc(self, artist, title):
+        params = urllib.urlencode({'wd': ' '.join([togb2312(title), togb2312(artist), 'filetype:lrc']), 'cl': 3})
+        url = self.search_engine + '?' + params
+        print url
+        try:
+            f = urllib2.urlopen(url)
+        except urllib2.URLError:
+            print 'urlopen error'
+            return None
+
+        data = f.read()
+        open('aaa', 'w+').write(data)
+
+        return self.get_lrc_link(data)
+    
+
+    def get_lrc_link(self, data):
+        """Find all the links in search results"""
+        for line in data.splitlines():
+            line = to_utf8(line)
+
+            CHARS = '.*?'
+            VAR = '(%s)' % CHARS
+            def MARK(s):
+                return CHARS+s+CHARS
+
+            if '【LRC】' in line:
+                # Friendly writing for regex
+                #    '<table.*?href="(.*?)".*?color.*?>(.*?)<.*?color.*?>(.*?)<.*?<br>'
+                reg = '<table$CHARShref="$VAR"$1>$VAR<$1>$VAR<$CHARS<br>'
+                reg = reg.replace('$CHARS', CHARS)
+                reg = reg.replace('$VAR', VAR)
+                reg = reg.replace('$1', MARK('color'))
+                print reg
+                return re.findall(reg, line)
+
+    def download_lrc(self, link):
+        try:
+            f = urllib2.urlopen(link)
+        except:
+            print 'download error'
+            return None
+        return f.read()
+        
+           
+    def save_lyric(self, artist, title, data):
         #self.servers
         #self.local_path
-        pass
+        path = self.get_path(artist, title)
+        os.system('mkdir -p ' + os.path.dirname(path))
+        f = open(path, 'w+')
+        f.write(data)
+        f.close()
 
 
 if __name__ == '__main__':
-    repo = LyricRepo()
+    repo = LyricRepo('repo')
     #l = lyric.local_lookup('周杰伦', '千里之外')
     l = repo.get_lyric('xry', 'meetu')
-    for k,v in l['lyrics']:
-        print k,v 
+    if l:
+        for k,v in l['lyrics']:
+            print k,v 
+
+    a = '周杰伦'
+    t = '千里之外'
+    links = repo.search_lrc(a, t)
+    data = repo.download_lrc(links[0][0])
+    repo.save_lyric(a, t, data)
+
+    l = repo.get_lyric(a, t)
+    print l['lyrics']
+    #print repo.search_lrc('许茹芸', '泪海')
 
