@@ -10,12 +10,18 @@ class LyricRepo(object):
         self.path = path
         pass
 
+    def get_path(self, artist, title):
+        # Because we find lyrics by artist and title, but there are many songs which do not have these tags
+        if not artist:
+            artist = '未知'
+        return os.path.join(self.path, '%s/%s.lyc' % (artist, title))
+
     def get_lyric(self, artist, title):
         """Get lyric by artist and title
         Return dict
         """
         # Find in cache first
-        lyric_file = os.path.join(self.path, '%s-%s.lyc' % (artist, title))
+        lyric_file = self.get_path(artist, title)
         if os.path.isfile(lyric_file):
             data = open(lyric_file, 'r').readlines()
             return self.parse_lyric(data)

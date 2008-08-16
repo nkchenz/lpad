@@ -24,7 +24,7 @@ LP_PLAYLIST_TEXT = '#17E8F1'
 LP_PLAYLIST_BACKGROUND = '#000000'
 LP_PLAYLIST_DEFAULT_FILE = '~/.listenpad.list'
 
-LYRIC_REPO_PATH = '/home/chenz/code/ListenPad'
+LYRIC_REPO_PATH = '/home/chenz/code/ListenPad/repo'
 
 
 # For drag and drop files to playlist
@@ -240,14 +240,27 @@ class LyricView:
         self.window.add(vbox)
         self.window.set_skip_taskbar_hint(True)
 
+        self.repo = LyricRepo(LYRIC_REPO_PATH)
+
     # Dont care what 'a' 'b' really are
     def hide_on_close(self, a, b):
         self.window.hide()
         return True 
 
-    def show_lyric(self, lyric):
+    def show_lyric(self, artist, title):
+        # Clear lyric window first
+        start, end = self.textbuffer.get_bounds()
+        self.textbuffer.delete(start, end)
+
         pos = self.textbuffer.get_start_iter()
-        for timestamp, text in lyric['lyrics']:
+        l = self.repo.get_lyric(artist, title)
+        if l == None:
+            log('Lyric not found')
+            self.textbuffer.insert(pos, '%s\n没有找到歌词' % self.repo.get_path(artist, title))
+            return
+
+        log('Show Lyric ' + artist +  title)
+        for timestamp, text in l['lyrics']:
             self.textbuffer.insert(pos, timestamp + text)
 
 class PlayListView:
@@ -430,7 +443,7 @@ class Player:
         self.timer = gobject.timeout_add(1000, self.timer_callback, self) # Start a new one
         self.timer_enable = True
 
-        # Deal with special chars
+        # Deal with special chars in shell command, yes, it's ugly but very effective
         file = file.replace('\'', '\\\'')
         self.slave.send('loadfile \'%s\'' % file)
 
@@ -446,9 +459,11 @@ class Player:
         self.tooltips.set_tip(self.meta, '%s-%s' % (meta['artist'], meta['album']))
         self.cb_play.set_stock_id('gtk-media-pause')
 
-        #path = self.proxy.playlist_view.treeview.get_path_at_pos(id, 0)
+        # Scroll playlist
         self.proxy.playlist_view.treeview.scroll_to_cell((id, 0))
-        #print path, id
+
+        # Show lyric
+        self.proxy.lyric_view.show_lyric(meta['artist'], title)
 
     def play_stop(self):
         # Clear time info, meta, pbar
@@ -518,7 +533,8 @@ class Player:
         if not self.timer_enable:
             return True
         self.meta_pos += 1
-        if self.meta_pos > self.meta_total:
+        #log(self.slave.get_var('percent_pos') +  self.meta_pos)
+        if self.meta_pos > self.meta_total: # self.slave.get_var('percent_pos') == '100':
             self.play_next()
             return False
         self.progress.set_value(float(self.meta_pos) / self.meta_total * 100) 
@@ -611,7 +627,6 @@ class Controller:
         self.lyric_view.window.move(5 + x + LP_WIDTH, y)
         #self.lyric_view.window.show_all()
         # Get a lyric repo instance
-        self.lyric_repo = LyricRepo(LYRIC_REPO_PATH)
 
         vbox.show()
         self.window.add(vbox)
@@ -623,17 +638,8 @@ class Controller:
     def load_conf(self):
         self.default_playlist = LP_PLAYLIST_DEFAULT_FILE
         self.playlist_view.load(self.default_playlist)
-        self.show_lyric('xry', 'meetu')
-        #self.status.push(self.status.get_context_id('Player'), 'Ready')
 
-    def show_lyric(self, artist, title):
-        l = self.lyric_repo.get_lyric(artist, title)
-        if l == None:
-            log('Lyric not found')
-            return
-        log('Show Lyric ' + artist +  title)
-        self.lyric_view.show_lyric(l)
-        
+       
 
 debug_view = DebugWindow()
 lp = Controller()
