@@ -15,7 +15,7 @@ from MPlayerSlave import *
 import time
 import urllib
 import random
-import threading
+import thread
 
 from misc import *
 
@@ -339,7 +339,7 @@ class LyricView:
         def normalize_name(name):
             """Remove links, (*) in name, so we have more chances to hit while searching"""
             new = []
-            keywords = ['http', 'www.', '.com']
+            keywords = ['http', 'www.', '.com', '.cn']
             for a in name.split():
                 found = 0
                 for k in keywords:
@@ -377,7 +377,9 @@ class LyricView:
             #gobject.idle_add(self.search_internet)
             #se = threading.Thread(target = self.search_internet, args=(artist, title))
             #se.start()
-            gobject.timeout_add(10, self.search_internet, artist, title) # Start a new one
+            thread.start_new_thread(self.search_internet, (artist, title))
+
+            #gobject.timeout_add(10, self.search_internet, artist, title) # Start a new one
             return
 
         pos = self.textbuffer.get_start_iter()
@@ -774,6 +776,11 @@ class Controller:
         self.default_playlist = LP_PLAYLIST_DEFAULT_FILE
         self.playlist_view.load(self.default_playlist)   
 
+gtk.gdk.threads_init()
 debug_view = DebugWindow()
+
+gtk.gdk.threads_enter()
 lp = Controller()
 gtk.main()
+gtk.gdk.threads_leave()
+
