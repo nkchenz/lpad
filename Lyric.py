@@ -8,7 +8,7 @@ from misc import *
 class LyricRepo(object):
     
     def __init__(self, path):
-        self.path = path
+        self.path = os.path.expanduser(path)
         self.search_engine = 'http://www.baidu.com/s'
         pass
 

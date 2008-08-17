@@ -26,9 +26,9 @@ LP_HEIGHT = 400
 
 LP_PLAYLIST_TEXT = '#17E8F1'
 LP_PLAYLIST_BACKGROUND = '#000000'
-LP_PLAYLIST_DEFAULT_FILE = '~/.listenpad.list'
+LP_PLAYLIST_DEFAULT_FILE = '~/.ListenPad/list'
 
-LYRIC_REPO_PATH = '/home/chenz/code/ListenPad/repo'
+LYRIC_REPO_PATH = '~/.ListenPad/repo'
 
 
 # For drag and drop files to playlist
@@ -184,6 +184,7 @@ class DebugWindow:
     """
     def __init__(self):
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+        self.window.set_title(LP_NAME + '-Debug')
         self.window.set_size_request(LP_WIDTH * 2, LP_HEIGHT / 2)        
         self.window.connect("delete_event", self.hide_on_close)
 
@@ -227,6 +228,7 @@ class LyricView:
 
     def __init__(self):
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+        self.window.set_title(LP_NAME + '-Lyric')
         self.window.set_size_request(LP_WIDTH * 2, LP_HEIGHT)        
         self.window.connect("delete_event", self.hide_on_close)
         #self.window.set_position(gtk.WIN_POS_CENTER)
