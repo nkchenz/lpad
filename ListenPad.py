@@ -303,6 +303,7 @@ class LyricView:
             self.textbuffer.apply_tag_by_name(tag, start, end)
 
     def search_internet(self, ar, ti):
+
         #print 'thread se started'
         self.add_line('Searching from %s' % self.repo.search_engine)
         self.add_line('artist: %s title: %s' % (ar, ti))
@@ -335,6 +336,35 @@ class LyricView:
         log(line)
 
     def show_lyric(self, artist, title):
+        def normalize_name(name):
+            """Remove links, (*) in name, so we have more chances to hit while searching"""
+            new = []
+            keywords = ['http', 'www.', '.com']
+            for a in name.split():
+                found = 0
+                for k in keywords:
+                    if k in a:
+                        found = 1
+                        break
+                if found:
+                    continue
+                new.append(a)
+            tmp = ' '.join(new)
+
+            # Remove contents in ()
+            tmp = re.sub('\(.*?\)', '', tmp) 
+
+            # Special chars
+            special_chars = ['・', '/']
+            for c in special_chars:
+                tmp = re.sub(c, '', tmp)
+            return tmp.strip() 
+
+        log('ar: %s ti: %s' % (artist, title))
+        artist = normalize_name(artist)
+        title = normalize_name(title)
+        log('I guess it\'s ar: %s ti: %s' % (artist, title))
+
         # Clear lyric window first
         start, end = self.textbuffer.get_bounds()
         self.textbuffer.delete(start, end)
