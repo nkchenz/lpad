@@ -7,4 +7,17 @@ lyric search and download
 
 TODO:
 I want to listen: enter song name, we'll find and download it automatically from baidu, google, etc.
-make a icon
+
+make a icon?
+
+自动判断，英文用google，中文用baidu。可以选择重新搜索，可以自定义title，artist，可以选择，可以关联歌词？
+如果artist，title是自定义的，如何关联？
+
+播放列表保存和加载
+
+
+如果有空间的话，可以建立一个lrc仓库，对mp3除了tag之外的部分取md5，然后上传至仓库。
+
+可以对mp3进行品论，加标签
+
+
