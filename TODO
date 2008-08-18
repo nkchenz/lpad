@@ -1,11 +1,10 @@
+Done:
 local lyric show
-mplayerslave: 
-
+mplayerslave
 info: progress bar timer, mp3 meta data
 control: stop resume next pre
-
 lyric search and download
 
+TODO:
 I want to listen: enter song name, we'll find and download it automatically from baidu, google, etc.
-
 make a icon

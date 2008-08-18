@@ -352,7 +352,9 @@ class LyricView:
             tmp = ' '.join(new)
 
             # Remove contents in ()
-            tmp = re.sub('\(.*?\)', '', tmp) 
+            remove_patterns = ['\(.*?\)', '\[.*?\]']
+            for p in remove_patterns:
+                tmp = re.sub(p, '', tmp) 
 
             # Special chars
             special_chars = ['・', '/']
