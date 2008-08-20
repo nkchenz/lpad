@@ -252,6 +252,80 @@ class LyricView:
         
         vbox = gtk.VBox(False, 0)
         vbox.pack_start(self.sw, True, True, 1)
+
+        tool = gtk.VBox(False, 0)
+        hbox = gtk.HBox(False, 0)
+        tmp = gtk.Label('歌词引擎')
+        hbox.pack_start(tmp, False, False, 1)
+        engine = gtk.RadioButton(None, "Google")
+        hbox.pack_start(engine, False, False, 1)
+        #engine.connect("toggled", self.callback, "radio button 2")
+        engine = gtk.RadioButton(engine, "Baidu")
+        hbox.pack_start(engine, False, False, 1)
+        #engine.connect("toggled", self.callback, "radio button 2")
+        engine.set_active(True)
+
+        
+        button = gtk.Button('隐藏')
+        hbox.pack_end(button, False, False, 1)
+        button = gtk.Button('手动选择')
+        hbox.pack_end(button, False, False, 1)
+        #engine.connect("toggled", self.callback, "radio button 2")
+        tool.pack_start(hbox, False, False, 1)
+        
+        #separator = gtk.HSeparator()
+
+        
+        hbox = gtk.HBox(False, 0)
+        #hbox.set_alignment('center')
+        entry = gtk.Entry()
+        entry.set_max_length(100)
+        entry.set_size_request(LP_WIDTH, -1)
+        #entry.set_size_request()
+        #entry.connect("activate", self.enter_callback, entry)
+        #entry.set_text("hello")
+        #entry.insert_text(" world", len(entry.get_text()))
+        #hbox.pack_start(gtk.Label('歌手'), False, False, 1)
+        hbox.pack_start(entry, False, False, 1)
+        self.keywords_view = entry
+
+        #entry = gtk.Entry()
+        #entry.set_max_length(100)
+        #entry.connect("activate", self.enter_callback, entry)
+        #entry.set_text("hello")
+        #entry.insert_text(" world", len(entry.get_text()))
+        #hbox.pack_start(gtk.Label('歌手'), False, False, 1)
+        #hbox.pack_start(entry, False, False, 1)
+        #self.title_view = entry
+
+        button = gtk.Button('好了, 再试试')
+        hbox.pack_start(button, False, False, 1)
+        tool.pack_start(hbox, False, False, 1)
+        
+
+        tool.pack_start(gtk.HSeparator(), False, True, 0)
+
+        hbox = gtk.HBox(False, 0)
+        entry = gtk.Entry()
+        entry.set_text('我想听')
+        #entry.select_region(0, len(entry.get_text()))
+        entry.set_max_length(100)
+        hbox.pack_start(entry, False, False, 1)
+        self.iwant = entry
+        tool.pack_start(hbox, False, False, 1)
+        
+        
+        #self.engine_google_view = gtk.CheckButton('Google')
+        #hbox.pack_start(self.engine_google_view, False, False, 1)
+        #button.connect("toggled", self.check_box_callback, name)
+
+
+        #：google，baidu 手动选择 隐藏 \n 张敬轩 断点 重新搜索')
+        tool.set_size_request(LP_WIDTH * 2, int(LP_HEIGHT * 0.382))
+        vbox.pack_start(tool, False, False, 1)
+        hbox.hide()
+
+
         vbox.show()
         self.window.add(vbox)
         #self.window.set_skip_taskbar_hint(True)
@@ -370,6 +444,8 @@ class LyricView:
         # Clear lyric window first
         start, end = self.textbuffer.get_bounds()
         self.textbuffer.delete(start, end)
+
+        self.keywords_view.set_text(artist + ' ' + title)
 
         l = self.repo.get_lyric(artist, title)
         self.lyric = l
