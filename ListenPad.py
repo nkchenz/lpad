@@ -299,11 +299,12 @@ class LyricView:
         #self.title_view = entry
 
         button = gtk.Button('好了, 再试试')
+        button.connect('clicked', self.search_again)
         hbox.pack_start(button, False, False, 1)
         tool.pack_start(hbox, False, False, 1)
         
 
-        tool.pack_start(gtk.HSeparator(), False, True, 0)
+        #tool.pack_start(gtk.HSeparator(), False, True, 0)
 
         hbox = gtk.HBox(False, 0)
         entry = gtk.Entry()
@@ -312,7 +313,7 @@ class LyricView:
         entry.set_max_length(100)
         hbox.pack_start(entry, False, False, 1)
         self.iwant = entry
-        tool.pack_start(hbox, False, False, 1)
+        #tool.pack_start(hbox, False, False, 1)
         
         
         #self.engine_google_view = gtk.CheckButton('Google')
@@ -321,7 +322,7 @@ class LyricView:
 
 
         #：google，baidu 手动选择 隐藏 \n 张敬轩 断点 重新搜索')
-        tool.set_size_request(LP_WIDTH * 2, int(LP_HEIGHT * 0.382))
+        #tool.set_size_request(LP_WIDTH * 2, int(LP_HEIGHT * 0.382))
         vbox.pack_start(tool, False, False, 1)
         hbox.hide()
 
@@ -332,6 +333,15 @@ class LyricView:
 
         self.repo = LyricRepo(LYRIC_REPO_PATH)
         self.last_line = None
+        self.curr_ar = None
+        self.curr_ti = None
+
+    def search_again(self, widget):
+        self.clear()
+        keywords = self.keywords_view.get_text()
+        log('search again, keywords: ' + keywords)
+        if self.curr_ar != None and keywords:
+            thread.start_new_thread(self.search_internet, ('', keywords))
 
     # Dont care what 'a' 'b' really are
     def hide_on_close(self, a, b):
@@ -380,8 +390,8 @@ class LyricView:
 
         #print 'thread se started'
         self.add_line('Searching from %s' % self.repo.search_engine)
-        self.add_line('artist: %s title: %s' % (ar, ti))
-        
+        self.add_line('%s %s' % (ar, ti))
+
         links = self.repo.search_lrc(ar, ti)
         if not links:
             self.add_line('Nothing found')
@@ -396,7 +406,13 @@ class LyricView:
         if not data:
             self.add_line('Download error')
             return
-        
+
+        # ar, ti should be the same as self.ar, self.ti
+        # For keywords search's consideration of user, we need to save lrc to its original 
+        # ar, ti path, because we did not modify its mp3 tag, so next time it still will be
+        # the wrong tags.
+
+        ar, ti = self.curr_ar, self.curr_ti
         self.add_line('Saving to ' + self.repo.get_path(ar, ti))
         self.repo.save_lyric(ar, ti, data)
         self.add_line('Done, reloading')        
@@ -409,44 +425,14 @@ class LyricView:
         self.textbuffer.insert(pos, line + '\n')
         log(line)
 
-    def show_lyric(self, artist, title):
-        def normalize_name(name):
-            """Remove links, (*) in name, so we have more chances to hit while searching"""
-            new = []
-            keywords = ['http', 'www.', '.com', '.cn']
-            for a in name.split():
-                found = 0
-                for k in keywords:
-                    if k in a:
-                        found = 1
-                        break
-                if found:
-                    continue
-                new.append(a)
-            tmp = ' '.join(new)
-
-            # Remove contents in ()
-            remove_patterns = ['\(.*?\)', '\[.*?\]']
-            for p in remove_patterns:
-                tmp = re.sub(p, '', tmp) 
-
-            # Special chars
-            special_chars = ['・', '/']
-            for c in special_chars:
-                tmp = re.sub(c, '', tmp)
-            return tmp.strip() 
-
-        log('ar: %s ti: %s' % (artist, title))
-        artist = normalize_name(artist)
-        title = normalize_name(title)
-        log('I guess it\'s ar: %s ti: %s' % (artist, title))
-
+    
+    def clear(self):
         # Clear lyric window first
         start, end = self.textbuffer.get_bounds()
         self.textbuffer.delete(start, end)
 
-        self.keywords_view.set_text(artist + ' ' + title)
-
+    def show_lyric(self, artist, title):
+        self.clear()
         l = self.repo.get_lyric(artist, title)
         self.lyric = l
         if l == None:
@@ -657,14 +643,23 @@ class Player:
         if not title:
             title = os.path.splitext(os.path.basename(file))[0]
         self.meta.set_label('%s %s' % (title, meta['bitrate']))
-        self.tooltips.set_tip(self.meta, '%s-%s' % (meta['artist'], meta['album']))
+        artist = meta['artist']
+        self.tooltips.set_tip(self.meta, '%s-%s' % (artist, meta['album']))
         self.cb_play.set_stock_id('gtk-media-pause')
 
         # Scroll playlist
         self.proxy.playlist_view.treeview.scroll_to_cell((id, 0))
 
         # Show lyric
-        self.proxy.lyric_view.show_lyric(meta['artist'], title)
+        log('ar: %s ti: %s' % (artist, title))
+        ar = normalize_name(artist)
+        ti =  normalize_name(title)
+        log('I guess it\'s ar: %s ti: %s' % (ar, ti))
+
+        self.proxy.lyric_view.keywords_view.set_text(ar + ' ' + ti)
+        self.proxy.lyric_view.curr_ar = ar
+        self.proxy.lyric_view.curr_ti = ti
+        self.proxy.lyric_view.show_lyric(ar, ti)
 
     def play_stop(self):
         # Clear time info, meta, pbar
