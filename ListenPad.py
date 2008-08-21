@@ -125,7 +125,7 @@ class Menu:
 
     def OnLyric(self, event):
         if event.get_active():
-            self.proxy.lyric_view.window.show_all()
+            self.proxy.lyric_view.window.show()
         else:
             self.proxy.lyric_view.window.hide()
 
@@ -252,8 +252,10 @@ class LyricView:
         
         vbox = gtk.VBox(False, 0)
         vbox.pack_start(self.sw, True, True, 1)
+        
+        #hbox = gtk.HBox(False, 0)
+        #vbox.pack_start(hbox, False, False, 1)
 
-        tool = gtk.VBox(False, 0)
         hbox = gtk.HBox(False, 0)
         tmp = gtk.Label('歌词引擎')
         hbox.pack_start(tmp, False, False, 1)
@@ -264,23 +266,29 @@ class LyricView:
         hbox.pack_start(engine, False, False, 1)
         #engine.connect("toggled", self.callback, "radio button 2")
         engine.set_active(True)
-
         
-        button = gtk.Button('隐藏')
+        button = gtk.Button('More')
+        button.connect('clicked', self.hide_tool_panel)
         hbox.pack_end(button, False, False, 1)
+
         button = gtk.Button('手动选择')
         hbox.pack_end(button, False, False, 1)
-        #engine.connect("toggled", self.callback, "radio button 2")
-        tool.pack_start(hbox, False, False, 1)
+
+        # Show all the widgets in a container: show_all
+        # Show widgets only call 'show' explictly in a container: show
+        hbox.show_all()
+        vbox.pack_start(hbox, False, False, 1)
         
         #separator = gtk.HSeparator()
-
         
+        tool = gtk.VBox(False, 0)
+
         hbox = gtk.HBox(False, 0)
         #hbox.set_alignment('center')
         entry = gtk.Entry()
         entry.set_max_length(100)
         entry.set_size_request(LP_WIDTH, -1)
+        entry.connect('activate', self.search_again)
         #entry.set_size_request()
         #entry.connect("activate", self.enter_callback, entry)
         #entry.set_text("hello")
@@ -298,7 +306,7 @@ class LyricView:
         #hbox.pack_start(entry, False, False, 1)
         #self.title_view = entry
 
-        button = gtk.Button('好了, 再试试')
+        button = gtk.Button('好了，再试试')
         button.connect('clicked', self.search_again)
         hbox.pack_start(button, False, False, 1)
         tool.pack_start(hbox, False, False, 1)
@@ -322,19 +330,28 @@ class LyricView:
 
 
         #：google，baidu 手动选择 隐藏 \n 张敬轩 断点 重新搜索')
-        #tool.set_size_request(LP_WIDTH * 2, int(LP_HEIGHT * 0.382))
+        tool.set_size_request(LP_WIDTH * 2, int(LP_HEIGHT * 0.25))
         vbox.pack_start(tool, False, False, 1)
-        hbox.hide()
-
-
+        self.tool_panel = tool
         vbox.show()
+
         self.window.add(vbox)
+        self.tool_panel.hide()
         #self.window.set_skip_taskbar_hint(True)
 
         self.repo = LyricRepo(LYRIC_REPO_PATH)
         self.last_line = None
         self.curr_ar = None
         self.curr_ti = None
+
+    def hide_tool_panel(self, widget):
+        action = widget.get_label()
+        if action == 'Hide':
+            self.tool_panel.hide()
+            widget.set_label('More')
+        else:
+            self.tool_panel.show_all()
+            widget.set_label('Hide')
 
     def search_again(self, widget):
         self.clear()
