@@ -16,7 +16,7 @@ import time
 import urllib
 import random
 import thread
-
+import fcntl
 from misc import *
 
 LP_NAME = 'ListenPad' 
@@ -528,15 +528,18 @@ class LyricView:
         # No lyric found
         if not self.lyric:
             return
-        i = 0
-        for timestamp, text in self.lyric['lyrics']:
+        l = self.lyric['lyrics']
+        for i in range(0, len(l)):
+            timestamp, text = l[i]
             min, sec = timestamp.split(':')
             sec = int(min) * 60 + float(sec)
             if sec >= pos:
                 if sec > pos + 1:
                     return # Too early
+                tmp = text.strip() 
+                if tmp is '': # Blank
+                    continue
                 break
-            i += 1
         self.show_line(i)
 
     def show_line(self, line):
@@ -803,11 +806,31 @@ class Player:
         self.slave.debug = self.proxy.debug_view
         self.timer = None
 
+        self.error = False
+
         # song id of now playing
         self.id = None
         self.R_mode = False
         self.S_mode = False
         self.L_mode = False
+        
+    def error_check(self):
+        '''Check to see if we have pending errors to read, mainly for wrong mp3 length detect
+           unexpect file ending, file is shorter than the length in meta data
+        '''
+        fd = self.slave.mplayer.stdout
+        flags = fcntl.fcntl(fd, fcntl.F_GETFL)
+        fcntl.fcntl(fd, fcntl.F_SETFL, os.O_NONBLOCK)
+        while True:
+            try:
+                line = self.slave.mplayer.stdout.readline()
+                if 'Cannot sync MAD frame' in line:
+                    log('Found: Cannot sync MAD frame, length meta maybe wrong, or unexpected EOF')
+                    self.error = True # Alert main thread there is a error found!
+            except IOError:
+                break
+        fcntl.fcntl(fd, fcntl.F_SETFL, flags)
+
 
     def play(self, file, id):
         log('playing %s %s' % (file, id))
@@ -818,6 +841,7 @@ class Player:
 
         # Deal with special chars in shell command, yes, it's ugly but very effective
         self.timer = gobject.timeout_add(1000, self.timer_callback, self) # Start a new one
+        self.error = False
         self.slave.send('loadfile %s' % escape_path(file))
         self.timer_enable = True
 
@@ -918,8 +942,8 @@ class Player:
         if not self.timer_enable:
             return True
         self.meta_pos += 1
-        #log(self.slave.get_var('percent_pos') +  self.meta_pos)
-        if self.meta_pos > self.meta_total: # self.slave.get_var('percent_pos') == '100':
+        self.error_check()
+        if self.meta_pos > self.meta_total or self.error:
             self.play_next()
             return False
         self.progress.set_value(float(self.meta_pos) / self.meta_total * 100) 
