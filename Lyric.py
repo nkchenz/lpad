@@ -16,7 +16,7 @@ class LyricRepo(object):
         # Because we find lyrics by artist and title, but there are many songs which do not have these tags
         if not artist:
             artist = '未知'
-        return os.path.join(self.path, '%s/%s.lyc' % (artist, title))
+        return os.path.join(self.path, '%s/%s.lrc' % (artist, title))
 
     def get_lyric(self, artist, title):
         """Get lyric by artist and title

@@ -402,7 +402,7 @@ class LyricView:
         #hbox.set_alignment('center')
         entry = gtk.Entry()
         entry.set_max_length(100)
-        entry.set_size_request(LP_WIDTH, -1)
+        entry.set_size_request(LP_WIDTH * 3 / 4, -1)
         entry.connect('activate', self.search_again)
         #entry.set_size_request()
         #entry.connect("activate", self.enter_callback, entry)
@@ -421,16 +421,19 @@ class LyricView:
         #hbox.pack_start(entry, False, False, 1)
         #self.title_view = entry
 
-        button = gtk.Button('好了，再试试')
+        button = gtk.Button('重新搜索')
         button.connect('clicked', self.search_again)
         hbox.pack_start(button, False, False, 1)
 
-        button = gtk.Button('手动选择')
+        button = gtk.Button('本地歌词')
+        button.connect('clicked', self.choose_lyric_local)
+        hbox.pack_end(button, False, False, 1)
+
+        button = gtk.Button('选择搜索结果')
         button.connect('clicked', self.choose_lyric_manually)
         hbox.pack_end(button, False, False, 1)
-        
+
         tool.pack_start(hbox, False, False, 1)
-        
 
         #tool.pack_start(gtk.HSeparator(), False, True, 0)
 
@@ -465,6 +468,31 @@ class LyricView:
         self.curr_ti = None
         self.download_links = None
 
+    def foo(self, a):
+        # So ugly here, how do you use start_new_thread to start a function need no args?
+        # start_new_thread requires 2nd arg must be a tuple, but, show_lyric only expect 1 args!
+        self.show_lyric()
+
+    def choose_lyric_local(self, widget):
+        dialog = gtk.FileChooserDialog(title='Please choose the .lrc file', \
+                    action=gtk.FILE_CHOOSER_ACTION_OPEN,
+                    buttons = (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,\
+                              gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+    
+        filter = gtk.FileFilter()
+        filter.add_pattern("*.lrc")
+        dialog.set_filter(filter)
+
+        response = dialog.run()
+        if response == gtk.RESPONSE_OK:
+            file = dialog.get_filename()
+            # Save it
+            f = open(file, 'r')
+            self.repo.save_lyric(self.curr_ar, self.curr_ti, f.read())
+            f.close()
+            log('Local lyric file selected %s' % file)
+            thread.start_new_thread(self.foo, (1,))
+        dialog.destroy()
 
     def choose_lyric_manually(self, widget):
         if self.download_links is None:
