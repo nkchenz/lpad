@@ -149,6 +149,7 @@ class Menu:
                 return 
             self.proxy.playlist_view.liststore.clear()
             self.proxy.playlist_view.load(file)
+            log('Playlist %s loaded' % file)
         dialog.destroy()
 
     def OnDebug(self, event):
@@ -215,13 +216,19 @@ class Menu:
 
 
 class LyricChooser:
-    def __init__(self):
+    def __init__(self, parent):
+        self.parent = parent # Lyric Show window
+        self.ti = self.parent.curr_ti
+
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        self.window.set_title('Lyric Choose')
+        self.window.set_title('Choose lyrics')
         #self.window.connect("delete_event", self.hide_on_close)
-        self.window.set_skip_taskbar_hint(True)
+        self.window.set_size_request(int(LP_WIDTH * 1.5), int(LP_HEIGHT * 0.8))
         self.window.set_position(gtk.WIN_POS_CENTER)
-        self.window.show()
+
+        self.sw = gtk.ScrolledWindow()
+        self.sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+     
 
         self.liststore = gtk.ListStore(str, str, str) 
         self.treeview = gtk.TreeView(self.liststore)
@@ -231,28 +238,63 @@ class LyricChooser:
         self.treeview.append_column(col)
         col = gtk.TreeViewColumn('title', style, text = 2)
         self.treeview.append_column(col) 
+        col = gtk.TreeViewColumn('link', style, text = 0)
+        self.treeview.append_column(col)
 
+        #self.treeview.set_reorderable(True)
+        self.treeview.columns_autosize()
         self.treeview.set_enable_search(False)
-
         self.treeview.get_selection().set_mode(gtk.SELECTION_SINGLE)
         self.treeview.connect('row-activated', self.selection)
-        
-        vbox = gtk.VBox()
-        vbox.pack_start(self.treeview, False, False, 1)
+        self.sw.add(self.treeview)
 
-        button = gtk.Button('OK')
-        button.connect('clicked', self.selection)
-        vbox.pack_start(button, False, False, 1)
+        for song in self.parent.download_links:
+            self.liststore.append([song[0], song[2], song[1]])
+
+        vbox = gtk.VBox()
+        vbox.pack_start(self.sw, True, True, 1)
+        
+        hbox = gtk.HBox()
 
         button = gtk.Button('Close')
-        button.connect('clicked', self.selection)
-        vbox.pack_start(button, False, False, 1)
+        button.connect('clicked', self.OnClose)
+        hbox.pack_end(button, False, False, 1)
 
+        button = gtk.Button('OK, Select')
+        button.connect('clicked', self.OnOK)
+        hbox.pack_end(button, False, False, 1)
+
+        vbox.pack_start(hbox, False, False, 1)
+        self.window.add(vbox)
+
+    def OnClose(self, w):
+        self.window.destroy()
+
+    def replace_lyric(self, link):
+        if self.ti != self.parent.curr_ti: # the song has changed, so do nothing
+            return
+        self.parent.clear()
+        self.parent.download_and_save(link)
+        self.parent.show_lyric()
+
+    def OnOK(self, w):
+        liststore, items =  self.treeview.get_selection().get_selected_rows()
+        link = liststore[items[0][0]][0]
+        # Use thread here to shutdown this window immediately
+        # Let the background thread handle lyric replacing
+        #     
+        #    thread.start_new_thread(self.replace_lyric, (link))
+        # TypeError: 2nd arg must be a tuple
+        # So we use (link, ) here, don't panic
+        thread.start_new_thread(self.replace_lyric, (link,))
+        self.window.destroy()
+        
     def selection(self, path, col, item):
         id = col[0]
-        file = self.liststore[id][0]
-        log('Select ' + file)
-
+        link = self.liststore[id][0]
+        thread.start_new_thread(self.replace_lyric, (link,))
+        self.window.destroy()
+ 
 
 class DebugWindow:
     """
@@ -347,10 +389,6 @@ class LyricView:
         button.connect('clicked', self.hide_tool_panel)
         hbox.pack_end(button, False, False, 1)
 
-        button = gtk.Button('手动选择')
-        button.connect('clicked', self.manual_choose_lyric)
-        hbox.pack_end(button, False, False, 1)
-
         # Show all the widgets in a container: show_all
         # Show widgets only call 'show' explictly in a container: show
         hbox.show_all()
@@ -386,6 +424,11 @@ class LyricView:
         button = gtk.Button('好了，再试试')
         button.connect('clicked', self.search_again)
         hbox.pack_start(button, False, False, 1)
+
+        button = gtk.Button('手动选择')
+        button.connect('clicked', self.choose_lyric_manually)
+        hbox.pack_end(button, False, False, 1)
+        
         tool.pack_start(hbox, False, False, 1)
         
 
@@ -420,11 +463,15 @@ class LyricView:
         self.last_line = None
         self.curr_ar = None
         self.curr_ti = None
+        self.download_links = None
 
 
-    def manual_choose_lyric(self, widget):
-        w = LyricChooser()
-        w.window.show()
+    def choose_lyric_manually(self, widget):
+        if self.download_links is None:
+            log('Nothing to chooose, it\'s only used to choose between auto search results')
+            return
+        w = LyricChooser(self)
+        w.window.show_all()
         pass
 
     def hide_tool_panel(self, widget):
@@ -498,10 +545,16 @@ class LyricView:
             self.add_line('Nothing found')
             return
 
+        self.download_links = links
         for link in links:
              self.add_line('href=%s artist=%s title=%s' % (link[0], link[2], link[1]))
         
         href = links[0][0]
+        self.download_and_save(href)
+        self.show_lyric()
+        return False
+
+    def download_and_save(self, href):
         self.add_line('Select ' + href)
         data = self.repo.download_lrc(href)
         if not data:
@@ -518,21 +571,19 @@ class LyricView:
         self.repo.save_lyric(ar, ti, data)
         self.add_line('Done, reloading')        
         time.sleep(2)
-        self.show_lyric(ar, ti)
-        return False
 
     def add_line(self, line):
         pos = self.textbuffer.get_end_iter()
         self.textbuffer.insert(pos, line + '\n')
         log(line)
-
     
     def clear(self):
         # Clear lyric window first
         start, end = self.textbuffer.get_bounds()
         self.textbuffer.delete(start, end)
 
-    def show_lyric(self, artist, title):
+    def show_lyric(self):
+        artist, title = self.curr_ar, self.curr_ti
         self.clear()
         l = self.repo.get_lyric(artist, title)
         self.lyric = l
@@ -573,7 +624,6 @@ class PlayListView:
         #self.treeview.set_search_column(0)
         self.column_name.set_sort_column_id(0)
         self.treeview.set_headers_visible(False)
-        #self.treeview.set_reorderable(True)
 
         self.treeview.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
         self.treeview.connect('row-activated', self.selection)
@@ -768,7 +818,8 @@ class Player:
         self.proxy.lyric_view.keywords_view.set_text(ar + ' ' + ti)
         self.proxy.lyric_view.curr_ar = ar
         self.proxy.lyric_view.curr_ti = ti
-        self.proxy.lyric_view.show_lyric(ar, ti)
+        self.proxy.lyric_view.download_links = None
+        self.proxy.lyric_view.show_lyric()
 
     def play_stop(self):
         # Clear time info, meta, pbar
