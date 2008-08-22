@@ -49,15 +49,16 @@ class LyricRepo(object):
                 continue # Format wrong
 
             timestamps, text = r.groups()
+
             # Split multi time stamps by blank
             for t in re.findall('(\[.*?\])', timestamps):
                 t = t.strip('[]')
                 # Parse something like [ar:westlife], [by:foo], [00:12.98]
                 k, _, v = t.partition(':') 
                 if k.isdigit():
-                    lyrics[t] = text
+                    lyrics[t] = text # Timestamp
                 else:
-                    lyric[k] = v
+                    lyric[k] = v # Meta data
 
         # Sort lyrics
         lyric['lyrics'] = []

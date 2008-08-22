@@ -166,7 +166,7 @@ class Menu:
 
     def OnQuit(self, event):
         # Fixme: we should call the quit function of main window do some clean work
-        gtk.main_quit()
+        self.proxy.delete_event(None, None)
 
     def OnAddDir(self, event):
         dialog = gtk.FileChooserDialog(title='Which dir do you want to add?', \
@@ -449,6 +449,7 @@ class LyricView:
         return True 
 
     def scroll_lyric(self, pos):
+        '''Called every one second when updating progress bar'''
         # No lyric found
         if not self.lyric:
             return
@@ -549,7 +550,7 @@ class LyricView:
         pos = self.textbuffer.get_start_iter()
         log('Show Lyric ' + artist +  title)
         for timestamp, text in l['lyrics']:
-            self.textbuffer.insert(pos, timestamp + text)
+            self.textbuffer.insert(pos, timestamp + text + '\n')
 
 class PlayListView:
     def __init__(self, proxy):
@@ -635,7 +636,9 @@ class PlayListView:
             return
 
         log('Add File ' + file)
-        self.liststore.append([file, os.path.splitext(os.path.basename(file))[0]])
+        name = os.path.splitext(os.path.basename(file))[0]
+        name = to_utf8(name)
+        self.liststore.append([file, name])
 
     def add_dir(self, dir):
         log('Add Dir ' + dir)
@@ -740,7 +743,7 @@ class Player:
         self.slave.send('loadfile %s' % escape_path(file))
         self.timer_enable = True
 
-        # Get info
+        # Get info, meta data has been converted to utf8 already
         meta = self.slave.get_meta()
         self.meta_pos = 0
         self.meta_total = meta['length']
