@@ -26,10 +26,10 @@ LP_HEIGHT = 400
 
 LP_PLAYLIST_TEXT = '#17E8F1'
 LP_PLAYLIST_BACKGROUND = '#000000'
-LP_PLAYLIST_DEFAULT_FILE = '~/.ListenPad/list'
-
+LP_PLAYLIST_EXT = '.lpl'
+LP_PLAYLIST_DEFAULT_FILE = '~/.ListenPad/default' + LP_PLAYLIST_EXT
 LYRIC_REPO_PATH = '~/.ListenPad/repo'
-
+LP_SUPPORT_EXTS = ['.mp3', '.ape', '.flac', '.ogg', '.wma', LP_PLAYLIST_EXT]
 
 # For drag and drop files to playlist
 TARGET_TYPE_URI_LIST = 80
@@ -69,12 +69,12 @@ class Menu:
     ui = '''<ui>
     <menubar name="MenuBar">
       <menu action="File">
-        <menuitem action="Quit"/>
-      </menu>
-      <menu action="Playlist">
+        <menuitem action="SaveList"/>
+        <menuitem action="LoadList"/>
         <menuitem action="AddDir"/>
         <menuitem action="AddFile"/>
-        <menuitem action="Clear"/>
+        <menuitem action="ClearList"/>
+        <menuitem action="Quit"/>
       </menu>
       <menu action="View">
         <menuitem action="Debug"/>
@@ -97,11 +97,12 @@ class Menu:
         self.actiongroup = gtk.ActionGroup(LP_NAME)
         self.actiongroup.add_actions(
             [('File', None, '_File'),
+            ('SaveList', None, '_Save List', None, '', self.OnSaveList),
+            ('LoadList', None, '_Load List', None, '', self.OnLoadList),
+            ('AddDir', None, 'Add _Dir', None, '', self.OnAddDir),
+            ('AddFile', None, 'Add _File', None, '', self.OnAddFile),
+            ('ClearList', None, '_Clear List', None, '', self.OnClear),
             ('Quit', gtk.STOCK_QUIT, '_Quit', None, '', self.OnQuit),
-            ('Playlist', None, '_Playlist'),
-            ('AddDir', None, '_Add Dir', None, '', self.OnAddDir),
-            ('AddFile', None, '_Add File', None, '', self.OnAddFile),
-            ('Clear', None, '_Clear', None, '', self.OnClear),
             ('View', None, '_View'),
             ('Help', None, '_Help'),
             ('About', None, '_About', None, '', self.OnAbout),])
@@ -115,6 +116,40 @@ class Menu:
         # Load ui
         self.uimanager.add_ui_from_string(self.ui)
         self.menubar = self.uimanager.get_widget('/MenuBar')
+
+    def OnSaveList(self, event):
+        dialog = gtk.FileChooserDialog(title='Save play list', \
+                    action=gtk.FILE_CHOOSER_ACTION_SAVE,
+                    buttons = (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,\
+                              gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+        response = dialog.run()
+        if response == gtk.RESPONSE_OK:
+            file = dialog.get_filename()
+            if not file.endswith(LP_PLAYLIST_EXT):
+                file += LP_PLAYLIST_EXT
+            self.proxy.playlist_view.save(file)
+            log('Playlist %s saved' % file)
+        dialog.destroy()
+
+    def OnLoadList(self, event):
+        dialog = gtk.FileChooserDialog(title='Load play list', \
+                    action=gtk.FILE_CHOOSER_ACTION_OPEN,
+                    buttons = (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,\
+                              gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+    
+        filter = gtk.FileFilter()
+        filter.add_pattern("*.lpl")
+        dialog.set_filter(filter)
+
+        response = dialog.run()
+        if response == gtk.RESPONSE_OK:
+            file = dialog.get_filename()
+            if not file.endswith(LP_PLAYLIST_EXT):
+                log('Unknown playlist format %s' % file)
+                return 
+            self.proxy.playlist_view.liststore.clear()
+            self.proxy.playlist_view.load(file)
+        dialog.destroy()
 
     def OnDebug(self, event):
         if event.get_active():
@@ -177,6 +212,47 @@ class Menu:
             setter(v)
         about.run()
         about.hide()
+
+
+class LyricChooser:
+    def __init__(self):
+        self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+        self.window.set_title('Lyric Choose')
+        #self.window.connect("delete_event", self.hide_on_close)
+        self.window.set_skip_taskbar_hint(True)
+        self.window.set_position(gtk.WIN_POS_CENTER)
+        self.window.show()
+
+        self.liststore = gtk.ListStore(str, str, str) 
+        self.treeview = gtk.TreeView(self.liststore)
+
+        style = gtk.CellRendererText()
+        col = gtk.TreeViewColumn('artist', style, text = 1)
+        self.treeview.append_column(col)
+        col = gtk.TreeViewColumn('title', style, text = 2)
+        self.treeview.append_column(col) 
+
+        self.treeview.set_enable_search(False)
+
+        self.treeview.get_selection().set_mode(gtk.SELECTION_SINGLE)
+        self.treeview.connect('row-activated', self.selection)
+        
+        vbox = gtk.VBox()
+        vbox.pack_start(self.treeview, False, False, 1)
+
+        button = gtk.Button('OK')
+        button.connect('clicked', self.selection)
+        vbox.pack_start(button, False, False, 1)
+
+        button = gtk.Button('Close')
+        button.connect('clicked', self.selection)
+        vbox.pack_start(button, False, False, 1)
+
+    def selection(self, path, col, item):
+        id = col[0]
+        file = self.liststore[id][0]
+        log('Select ' + file)
+
 
 class DebugWindow:
     """
@@ -272,6 +348,7 @@ class LyricView:
         hbox.pack_end(button, False, False, 1)
 
         button = gtk.Button('手动选择')
+        button.connect('clicked', self.manual_choose_lyric)
         hbox.pack_end(button, False, False, 1)
 
         # Show all the widgets in a container: show_all
@@ -343,6 +420,12 @@ class LyricView:
         self.last_line = None
         self.curr_ar = None
         self.curr_ti = None
+
+
+    def manual_choose_lyric(self, widget):
+        w = LyricChooser()
+        w.window.show()
+        pass
 
     def hide_tool_panel(self, widget):
         action = widget.get_label()
@@ -511,8 +594,8 @@ class PlayListView:
         if event.type == gtk.gdk.KEY_PRESS:
             key = event.keyval
 
-            # Multiple delete with  'd'
-            if key == ord('d'):
+            # Multiple delete with  'd', 'D', 'Delete'
+            if key == ord('d') or key == ord('D') or key == 65535:
                 liststore, items =  self.treeview.get_selection().get_selected_rows()
                 # Becare with the indexes after delete 
                 i = 0
@@ -524,7 +607,7 @@ class PlayListView:
 
     def check_file(self, file):
         # If file exists and type is supportted, return True. Else return False
-        self.support_types = ['.mp3', '.ape', '.flac', '.ogg']
+        self.support_types = LP_SUPPORT_EXTS
         return os.path.isfile(file) and os.path.splitext(file)[1] in self.support_types
 
     def selection(self, path, col, item):
@@ -545,6 +628,12 @@ class PlayListView:
     def add_file(self, file):
         if not self.check_file(file):
             return
+
+        # You can add or drag playlist file directly too
+        if file.endswith(LP_PLAYLIST_EXT):
+            self.load(file)
+            return
+
         log('Add File ' + file)
         self.liststore.append([file, os.path.splitext(os.path.basename(file))[0]])
 
