@@ -539,8 +539,8 @@ class LyricView:
                 tmp = text.strip() 
                 if tmp is '': # Blank
                     continue
-                break
-        self.show_line(i)
+                self.show_line(i)
+                return
 
     def show_line(self, line):
         # Reset the style of last line
@@ -601,7 +601,7 @@ class LyricView:
         self.add_line('Saving to ' + self.repo.get_path(ar, ti))
         self.repo.save_lyric(ar, ti, data)
         self.add_line('Done, reloading')        
-        time.sleep(2)
+        time.sleep(1)
 
     def add_line(self, line):
         pos = self.textbuffer.get_end_iter()
