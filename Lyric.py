@@ -83,9 +83,12 @@ class LyricRepo(object):
 
         return self.get_lrc_link(data)
     
+    def remove_tags(self, html):
+        return re.sub('<.*?>', '', html)
 
     def get_lrc_link(self, data):
         """Find all the links in search results"""
+        links = []
         for line in data.splitlines():
             line = to_utf8(line)
 
@@ -97,12 +100,19 @@ class LyricRepo(object):
             if '【LRC】' in line:
                 # Friendly writing for regex
                 #    '<table.*?href="(.*?)".*?color.*?>(.*?)<.*?color.*?>(.*?)<.*?<br>'
-                reg = '<table$CHARShref="$VAR"$1>$VAR<$1>$VAR<$CHARS<br>'
+                reg = '<table$CHARShref="$VAR"$CHARS>$VAR<br>'
                 reg = reg.replace('$CHARS', CHARS)
                 reg = reg.replace('$VAR', VAR)
-                reg = reg.replace('$1', MARK('color'))
-                print reg
-                return re.findall(reg, line)
+                #reg = reg.replace('$1', MARK('color'))
+                for item in re.findall(reg, line):
+                    ar, ti = '', ''
+                    try:
+                        ti, ar = self.remove_tags(item[1]).split('-')
+                    except:
+                        pass
+                    links.append((item[0], ti.strip(), ar.strip()))
+        return links
+
 
     def download_lrc(self, link):
         try:
