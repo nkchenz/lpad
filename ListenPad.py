@@ -121,7 +121,7 @@ class Menu:
         dialog = gtk.FileChooserDialog(title='Save play list', \
                     action=gtk.FILE_CHOOSER_ACTION_SAVE,
                     buttons = (gtk.STOCK_CANCEL, gtk.RESPONSE_CANCEL,\
-                              gtk.STOCK_OPEN, gtk.RESPONSE_OK))
+                              gtk.STOCK_SAVE, gtk.RESPONSE_OK))
         response = dialog.run()
         if response == gtk.RESPONSE_OK:
             file = dialog.get_filename()
@@ -690,7 +690,7 @@ class PlayListView:
     def check_file(self, file):
         # If file exists and type is supportted, return True. Else return False
         self.support_types = LP_SUPPORT_EXTS
-        return os.path.isfile(file) and os.path.splitext(file)[1] in self.support_types
+        return os.path.isfile(file) and os.path.splitext(file)[1].lower() in self.support_types
 
     def selection(self, path, col, item):
         id = col[0]
