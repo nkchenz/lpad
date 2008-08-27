@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 #encoding: utf8
-
-# example treeviewcolumn.py
+"""
+ListenPad: Light mp3 player for linux.
+CopyRight (C) 2008 Chen Zheng <nkthunder@gmail.com>
+ 
+Distributed under terms of GPL v2
+"""
 
 import pygtk
 import os
@@ -371,24 +375,19 @@ class LyricView:
         vbox = gtk.VBox(False, 0)
         vbox.pack_start(self.sw, True, True, 1)
         
-        #hbox = gtk.HBox(False, 0)
-        #vbox.pack_start(hbox, False, False, 1)
-
         hbox = gtk.HBox(False, 0)
+
         tmp = gtk.Label('歌词引擎')
         hbox.pack_start(tmp, False, False, 1)
         engine = gtk.RadioButton(None, "Google")
         hbox.pack_start(engine, False, False, 1)
-        #engine.connect("toggled", self.callback, "radio button 2")
         engine = gtk.RadioButton(engine, "Baidu")
-        hbox.pack_start(engine, False, False, 1)
-        #engine.connect("toggled", self.callback, "radio button 2")
         engine.set_active(True)
-        
+        hbox.pack_start(engine, False, False, 1)
+    
         button = gtk.Button('More')
         button.connect('clicked', self.hide_tool_panel)
         hbox.pack_end(button, False, False, 1)
-
         # Show all the widgets in a container: show_all
         # Show widgets only call 'show' explictly in a container: show
         hbox.show_all()
@@ -398,34 +397,22 @@ class LyricView:
         
         tool = gtk.VBox(False, 0)
 
-        hbox = gtk.HBox(False, 0)
+        #hbox = gtk.HBox(False, 0)
         #hbox.set_alignment('center')
+
+        hbox = gtk.HBox(False, 0)
         entry = gtk.Entry()
         entry.set_max_length(100)
         entry.set_size_request(LP_WIDTH * 3 / 4, -1)
         entry.connect('activate', self.search_again)
-        #entry.set_size_request()
-        #entry.connect("activate", self.enter_callback, entry)
-        #entry.set_text("hello")
-        #entry.insert_text(" world", len(entry.get_text()))
-        #hbox.pack_start(gtk.Label('歌手'), False, False, 1)
         hbox.pack_start(entry, False, False, 1)
         self.keywords_view = entry
-
-        #entry = gtk.Entry()
-        #entry.set_max_length(100)
-        #entry.connect("activate", self.enter_callback, entry)
-        #entry.set_text("hello")
-        #entry.insert_text(" world", len(entry.get_text()))
-        #hbox.pack_start(gtk.Label('歌手'), False, False, 1)
-        #hbox.pack_start(entry, False, False, 1)
-        #self.title_view = entry
 
         button = gtk.Button('重新搜索')
         button.connect('clicked', self.search_again)
         hbox.pack_start(button, False, False, 1)
 
-        button = gtk.Button('本地歌词')
+        button = gtk.Button('关联本地歌词')
         button.connect('clicked', self.choose_lyric_local)
         hbox.pack_end(button, False, False, 1)
 
@@ -435,24 +422,15 @@ class LyricView:
 
         tool.pack_start(hbox, False, False, 1)
 
-        #tool.pack_start(gtk.HSeparator(), False, True, 0)
 
         hbox = gtk.HBox(False, 0)
         entry = gtk.Entry()
         entry.set_text('我想听')
-        #entry.select_region(0, len(entry.get_text()))
         entry.set_max_length(100)
         hbox.pack_start(entry, False, False, 1)
         self.iwant = entry
         #tool.pack_start(hbox, False, False, 1)
         
-        
-        #self.engine_google_view = gtk.CheckButton('Google')
-        #hbox.pack_start(self.engine_google_view, False, False, 1)
-        #button.connect("toggled", self.check_box_callback, name)
-
-
-        #：google，baidu 手动选择 隐藏 \n 张敬轩 断点 重新搜索')
         tool.set_size_request(LP_WIDTH * 2, int(LP_HEIGHT * 0.25))
         vbox.pack_start(tool, False, False, 1)
         self.tool_panel = tool
@@ -460,7 +438,7 @@ class LyricView:
 
         self.window.add(vbox)
         self.tool_panel.hide()
-        #self.window.set_skip_taskbar_hint(True)
+        #self.window.set_skip_taskbar_hint(True) # If you want lyric window show on taskbar, uncomment this line
 
         self.repo = LyricRepo(LYRIC_REPO_PATH)
         self.last_line = None
@@ -815,7 +793,7 @@ class Player:
         self.L_mode = False
         
     def error_check(self):
-        '''Check to see if we have pending errors to read, mainly for wrong mp3 length detect
+        '''Check to see if we have pending errors to read, mainly for detecting wrong mp3 length
            unexpect file ending, file is shorter than the length in meta data
         '''
         fd = self.slave.mplayer.stdout
@@ -1006,7 +984,6 @@ class Controller:
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.set_title(LP_NAME)
         self.window.connect("delete_event", self.delete_event)
-        self.window.connect("focus-in-event", self.focus_in_event)
         self.window.set_size_request(225, 400)
         self.window.set_position(gtk.WIN_POS_CENTER)
 
@@ -1033,17 +1010,11 @@ class Controller:
         sw.add(self.playlist_view.treeview)
         vbox.pack_start(sw, True, True, 1)
 
-        # Status bar
-        #self.status = gtk.Statusbar()  
-        #self.status.show()
-        #vbox.pack_start(self.status, False, False, 1)
-
         # Create a separate Lyric window
         self.lyric_view = LyricView()
         x, y = self.window.get_position()
         self.lyric_view.window.move(5 + x + LP_WIDTH, y)
-        #self.lyric_view.window.show_all()
-        # Get a lyric repo instance
+        self.lyric_view.window.show()
 
         vbox.show()
         self.window.add(vbox)
@@ -1051,11 +1022,6 @@ class Controller:
 
         # Load configuration
         self.load_conf()
-
-    # Check to see if we need to show these windows
-    def focus_in_event(self, widget, e):
-        if e.in_:
-            pass
 
     def load_conf(self):
         self.default_playlist = LP_PLAYLIST_DEFAULT_FILE
