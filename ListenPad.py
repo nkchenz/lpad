@@ -24,7 +24,7 @@ import fcntl
 from misc import *
 
 LP_NAME = 'ListenPad' 
-LP_VERSION = 'v0.1'
+LP_VERSION = 'v0.1 真的爱你'
 LP_WIDTH = 225
 LP_HEIGHT = 400
 
