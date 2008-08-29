@@ -817,6 +817,11 @@ class Player:
         if self.timer:
             gobject.source_remove(self.timer) # Remove old timer
 
+        if not os.path.isfile(file):
+            log(file + 'not exists, play next')
+            self.play_next()
+            return
+
         # Deal with special chars in shell command, yes, it's ugly but very effective
         self.timer = gobject.timeout_add(1000, self.timer_callback, self) # Start a new one
         self.error = False
