@@ -24,7 +24,8 @@ import fcntl
 from misc import *
 
 LP_NAME = 'ListenPad' 
-LP_VERSION = 'v0.1 真的爱你'
+LP_VERSION = 'v0.1'
+LP_CODE_NAME = '真的爱你'
 LP_WIDTH = 225
 LP_HEIGHT = 400
 
@@ -209,7 +210,7 @@ class Menu:
             'license': 'GPL v2',
             'website': 'http://code.google.com/p/listenpad',
             'authors': ['Chen Zheng <nkthunder@gmail.com>'],
-            'comments': 'ListenPad: a light music player for linux',
+            'comments': 'ListenPad: a light music player for linux\n code name: %s' % LP_CODE_NAME,
             }
         for k, v in infos.items():
             name = 'set_' + k
@@ -788,6 +789,7 @@ class Player:
 
         # song id of now playing
         self.id = None
+        self.idle = True
         self.R_mode = False
         self.S_mode = False
         self.L_mode = False
@@ -821,6 +823,8 @@ class Player:
             log(file + 'not exists, play next')
             self.play_next()
             return
+
+        self.idle = False
 
         # Deal with special chars in shell command, yes, it's ugly but very effective
         self.timer = gobject.timeout_add(1000, self.timer_callback, self) # Start a new one
@@ -868,8 +872,12 @@ class Player:
     def controll_button_callback(self, widget, data):
         if data is 'stop':
             log(data)
-            # Cmd 'stop' won't work, so just seek to the end
-            self.slave.send('seek 100 1')
+            # Cmd 'stop' won't work, and seek large file to end cost too much
+            # So just play a little trick here.
+            # It's the pay for being a frontend. You can easily stop playing and do other control stuffs
+            # if you are using decoder of your own
+            self.slave.send('loadfile no_such_file') 
+            self.idle = True
             self.play_stop()
 
         if data is 'next':
@@ -880,8 +888,11 @@ class Player:
             status = widget.get_stock_id()
             if status== 'gtk-media-play':
                 log('play')
-                self.timer_enable = True
-                self.slave.send('pause') # Start play. When mplayer slave is idle, no effect 
+                if self.idle:
+                    self.play_next()
+                else:
+                    self.timer_enable = True
+                    self.slave.send('pause') # Start play. When mplayer slave is idle, no effect 
                 widget.set_stock_id('gtk-media-pause')
             else:
                 log('pause')
@@ -970,6 +981,8 @@ class Player:
         # Becareful here, if next=0, it's still valid, so we don't use 'if next:' here
         if next != None: 
             self.play(self.proxy.playlist_view.liststore[next][0], next)
+        else:
+            self.idle = True
         
 class Controller:
 
