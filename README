@@ -2,3 +2,15 @@ ListenPad: Light mp3 player for linux.
 CopyRight (C) 2008 Chen Zheng <nkthunder@gmail.com>
  
 Distributed under terms of GPL v2
+
+
+
+
+已知问题
+mplayer有的歌曲长度信息识别有误，暂不影响播放
+
+
+
+
+帮助
+在播放列表中，可以使用d，D，Del键删除选定的项
