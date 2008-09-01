@@ -163,6 +163,8 @@ class Menu:
         else:
             self.proxy.debug_view.window.hide()
 
+    def change_state(self, var, value):
+        self.actiongroup.get_action(var).set_active(value)
 
     def OnLyric(self, event):
         if event.get_active():
@@ -306,6 +308,7 @@ class DebugWindow:
     Debug info window
     """
     def __init__(self):
+        self.proxy = None
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.set_title(LP_NAME + '-Debug')
         self.window.set_size_request(LP_WIDTH * 2, LP_HEIGHT / 2)        
@@ -338,6 +341,8 @@ class DebugWindow:
     
     def hide_on_close(self, a, b):
         self.window.hide()
+        if self.proxy:
+            self.proxy.menu.change_state('Debug', False)
         return True
 
     def log(self, s):
@@ -349,7 +354,9 @@ class DebugWindow:
 
 class LyricView:
 
-    def __init__(self):
+    def __init__(self, proxy):
+        self.proxy = proxy
+
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.set_title(LP_NAME + '-Lyric')
         self.window.set_size_request(LP_WIDTH * 2, LP_HEIGHT)        
@@ -500,6 +507,7 @@ class LyricView:
     # Dont care what 'a' 'b' really are
     def hide_on_close(self, a, b):
         self.window.hide()
+        self.proxy.menu.change_state('Lyric', False)
         return True 
 
     def scroll_lyric(self, pos):
@@ -763,6 +771,7 @@ class Player:
             # Save a reference here, we need to change 'play' button when double click to play
             setattr(self, 'cb_' + name, button) 
         
+        #controll_button('previous', '上一首')
         controll_button('next', '下一首')
         controll_button('play', '播放')
         controll_button('stop', '停止')
@@ -1018,6 +1027,7 @@ class Controller:
  
         # Debug window
         self.debug_view = debug_view
+        debug_view.proxy = self
         
         # Create Menu bar 
         self.menu = Menu(self)
@@ -1037,10 +1047,11 @@ class Controller:
         vbox.pack_start(sw, True, True, 1)
 
         # Create a separate Lyric window
-        self.lyric_view = LyricView()
+        self.lyric_view = LyricView(self)
         x, y = self.window.get_position()
         self.lyric_view.window.move(5 + x + LP_WIDTH, y)
         self.lyric_view.window.show()
+        self.menu.change_state('Lyric', True)
 
         vbox.show()
         self.window.add(vbox)
