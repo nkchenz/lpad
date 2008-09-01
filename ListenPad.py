@@ -844,8 +844,7 @@ class Player:
         self.meta.set_label('%s %s' % (title, meta['bitrate']))
         artist = meta['artist']
         self.tooltips.set_tip(self.meta, '%s-%s' % (artist, meta['album']))
-        self.cb_play.set_stock_id('gtk-media-pause')
-        self.tooltips.set_tip(self.cb_play, '暂停')
+        self.set_cb_state(self.cb_play, 'pause')
 
         # Scroll playlist
         self.proxy.playlist_view.treeview.set_cursor_on_cell((id, 0))
@@ -869,8 +868,7 @@ class Player:
         self.progress.set_value(0)
         self.meta_pos_view.set_label('')
         self.meta.set_label('')
-        self.cb_play.set_stock_id('gtk-media-play')
-        self.tooltips.set_tip(self.cb_play, '播放')
+        self.set_cb_state(self.cb_play, 'play')
 
     def controll_button_callback(self, widget, data):
         if data is 'stop':
@@ -896,16 +894,14 @@ class Player:
                 else:
                     self.timer_enable = True
                     self.slave.send('pause') # Start play. When mplayer slave is idle, no effect 
-                widget.set_stock_id('gtk-media-pause')
-                self.tooltips.set_tip(self.cb_play, '暂停')
+                self.set_cb_state(self.cb_play, 'pause')
             else:
                 log('pause')
                 self.timer_enable = False
                 self.slave.send('pause') # Pause
-                widget.set_stock_id('gtk-media-play')
-                self.tooltips.set_tip(self.cb_play, '播放')
+                self.set_cb_state(self.cb_play, 'play')
         
-    def set_cb_state(cb, state):
+    def set_cb_state(self, cb, state):
         cb.set_stock_id('gtk-media-' + state)
         tip = {
         'play': '播放',
