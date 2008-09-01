@@ -755,16 +755,17 @@ class Player:
 
         # Control buttons 
         hbox = gtk.HBox(False, 0)
-        def controll_button(name):
+        def controll_button(name, tip):
             button = gtk.ToolButton(getattr(gtk, 'STOCK_MEDIA_%s' % name.upper()))
             hbox.pack_start(button, False, False, 1)
+            self.tooltips.set_tip(button, tip)
             button.connect('clicked', self.controll_button_callback, name)
             # Save a reference here, we need to change 'play' button when double click to play
             setattr(self, 'cb_' + name, button) 
         
-        controll_button('next')
-        controll_button('play')
-        controll_button('stop')
+        controll_button('next', '下一首')
+        controll_button('play', '播放')
+        controll_button('stop', '停止')
         
         # Check boxes for play mode
         def check_box(name, tip):
@@ -773,9 +774,9 @@ class Player:
             hbox.pack_end(button, False, False, 1)
             button.connect("toggled", self.check_box_callback, name)
 
-        check_box('R', 'Repeat a single song')
-        check_box('L', 'Loop the whole playlist')
-        check_box('S', 'Shuffle playing')
+        check_box('R', '单曲重复')
+        check_box('L', '循环播放')
+        check_box('S', '乱序播放')
 
         view.pack_start(hbox, False, False, 1)
         self.view = view
@@ -844,9 +845,10 @@ class Player:
         artist = meta['artist']
         self.tooltips.set_tip(self.meta, '%s-%s' % (artist, meta['album']))
         self.cb_play.set_stock_id('gtk-media-pause')
+        self.tooltips.set_tip(self.cb_play, '暂停')
 
         # Scroll playlist
-        self.proxy.playlist_view.treeview.scroll_to_cell((id, 0))
+        self.proxy.playlist_view.treeview.set_cursor_on_cell((id, 0))
 
         # Show lyric
         log('ar: %s ti: %s' % (artist, title))
@@ -868,6 +870,7 @@ class Player:
         self.meta_pos_view.set_label('')
         self.meta.set_label('')
         self.cb_play.set_stock_id('gtk-media-play')
+        self.tooltips.set_tip(self.cb_play, '播放')
 
     def controll_button_callback(self, widget, data):
         if data is 'stop':
@@ -894,12 +897,21 @@ class Player:
                     self.timer_enable = True
                     self.slave.send('pause') # Start play. When mplayer slave is idle, no effect 
                 widget.set_stock_id('gtk-media-pause')
+                self.tooltips.set_tip(self.cb_play, '暂停')
             else:
                 log('pause')
                 self.timer_enable = False
                 self.slave.send('pause') # Pause
                 widget.set_stock_id('gtk-media-play')
+                self.tooltips.set_tip(self.cb_play, '播放')
         
+    def set_cb_state(cb, state):
+        cb.set_stock_id('gtk-media-' + state)
+        tip = {
+        'play': '播放',
+        'pause':'暂停'
+        }
+        self.tooltips.set_tip(cb, tip[state])
 
     def check_box_callback(self, widget, data):
         name = data +'_mode'
