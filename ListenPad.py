@@ -841,6 +841,11 @@ class Player:
 
         # Get info, meta data has been converted to utf8 already
         meta = self.slave.get_meta()
+        if meta == None:
+            log('Bad format' + file)
+            self.play_next()
+            return
+
         self.meta_pos = 0
         self.meta_total = meta['length']
         self.meta_pos_view_update()

@@ -64,6 +64,9 @@ class MPlayerSlave(object):
         get_time_length
         ANS_LENGTH=287.00
         """
+        # Let's test the format first
+        if self.get_var('audio_codec') == None:
+            return None
         meta = {
             'bitrate': self.get_var('audio_bitrate'),
             'codec': self.get_var('audio_codec'),
@@ -107,6 +110,8 @@ class MPlayerSlave(object):
             varname += var.upper()
         while True:
             line = self.mplayer.stdout.readline()
+            if 'Win32 LoadLibrary failed to load:' in line:
+                return None # Unknown format. I'm not sure what the reliability it is
             if line.startswith(varname + '='):
                 return line.split('=', 1)[1].strip('\' \n')
 
