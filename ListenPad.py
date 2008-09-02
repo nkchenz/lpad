@@ -281,8 +281,7 @@ class LyricChooser:
         if self.ti != self.parent.curr_ti: # the song has changed, so do nothing
             return
         self.parent.clear()
-        self.parent.download_and_save(link)
-        self.parent.show_lyric()
+        self.parent.update_lyric(link)
 
     def OnOK(self, w):
         liststore, items =  self.treeview.get_selection().get_selected_rows()
@@ -565,14 +564,12 @@ class LyricView:
              self.add_line('href=%s artist=%s title=%s' % (link[0], link[2], link[1]))
         
         href = links[0][0]
-        self.download_and_save(href)
-        self.show_lyric()
-        return False
+        self.update_lyric(href)
 
-    def download_and_save(self, href):
+    def update_lyric(self, href):
         self.add_line('Select ' + href)
         data = self.repo.download_lrc(href)
-        if not data:
+        if data == None:
             self.add_line('Download error')
             return
 
@@ -586,6 +583,10 @@ class LyricView:
         self.repo.save_lyric(ar, ti, data)
         self.add_line('Done, reloading')        
         time.sleep(1)
+        
+        # Lyric has been saved, so call show_lyric again it will find it in local repo
+        # it shall not cause infinite loop
+        self.show_lyric()
 
     def add_line(self, line):
         pos = self.textbuffer.get_end_iter()

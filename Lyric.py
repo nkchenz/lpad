@@ -78,10 +78,7 @@ class LyricRepo(object):
             print 'urlopen error'
             return None
 
-        data = f.read()
-        open('aaa', 'w+').write(data)
-
-        return self.get_lrc_link(data)
+        return self.get_lrc_link(f.read())
     
     def remove_tags(self, html):
         return re.sub('<.*?>', '', html)
