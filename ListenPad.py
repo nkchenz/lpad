@@ -310,7 +310,7 @@ class DebugWindow:
     def __init__(self):
         self.proxy = None
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        self.window.set_title(LP_NAME + '-Debug')
+        self.window.set_title('Debug-' + LP_NAME)
         self.window.set_size_request(LP_WIDTH * 2, LP_HEIGHT / 2)        
         self.window.connect("delete_event", self.hide_on_close)
 
@@ -335,9 +335,7 @@ class DebugWindow:
         vbox.show()
         self.window.add(vbox)
         # Don't show us at the task list 
-        self.window.set_skip_taskbar_hint(True)
-        #self.window.show()
-        #self.window.hide()
+        #self.window.set_skip_taskbar_hint(True)
     
     def hide_on_close(self, a, b):
         self.window.hide()
@@ -358,10 +356,9 @@ class LyricView:
         self.proxy = proxy
 
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        self.window.set_title(LP_NAME + '-Lyric')
+        self.window.set_title('Lyric-' + LP_NAME)
         self.window.set_size_request(LP_WIDTH * 2, LP_HEIGHT)        
         self.window.connect("delete_event", self.hide_on_close)
-        #self.window.set_position(gtk.WIN_POS_CENTER)
 
         self.sw = gtk.ScrolledWindow()
         self.sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
@@ -446,7 +443,7 @@ class LyricView:
 
         self.window.add(vbox)
         self.tool_panel.hide()
-        #self.window.set_skip_taskbar_hint(True) # If you want lyric window show on taskbar, uncomment this line
+        #self.window.set_skip_taskbar_hint(True) # If you don't want lyric window show on taskbar, uncomment this line
 
         self.repo = LyricRepo(LYRIC_REPO_PATH)
         self.last_line = None
