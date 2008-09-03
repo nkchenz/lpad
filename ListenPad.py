@@ -942,6 +942,7 @@ class Player:
     def progress_view_button_release_event(self, event, data):
         log('Seek end')
         # Re enable timer
+        self.set_cb_state(self.cb_play, 'pause')
         self.timer_enable = True
         self.slave.send('seek %d 2' % self.meta_pos)
 
