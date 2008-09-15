@@ -716,6 +716,13 @@ class PlayListView:
         tmp = {}
         if os.path.isfile(file):
             execfile(file, {}, tmp)
+            # Dont know how to get system volume in pygtk, so just read old value from file
+            if 'volume' in tmp:
+                vol = tmp['volume']
+            else:
+                vol = 60
+            self.proxy.player.volume = vol
+            self.proxy.player.volume_view.set_value(vol / 100.0)
             if 'playlist' in tmp:
                 for f in tmp['playlist']:
                     self.add_file(f)
@@ -726,7 +733,7 @@ class PlayListView:
         plist = []
         for item in self.liststore:
             plist.append(item[0])
-        f.write('playlist = ' + str(plist))
+        f.write('playlist = ' + str(plist) + '\nvolume=%d' % self.proxy.player.volume)
         f.close()
  
 
@@ -753,12 +760,18 @@ class Player:
         self.progress.connect("value_changed", self.progress_value_changed)
         self.progress_view = gtk.HScale(self.progress)
         self.progress_view.set_draw_value(False)
-        view.pack_start(self.progress_view, False, False, 1)
-       
+      
         # For callback handler, we name it as $object_$event
         self.progress_view.connect('button-release-event', self.progress_view_button_release_event)
         self.progress_view.connect('button-press-event', self.progress_view_button_press_event)
 
+        self.volume_view = gtk.VolumeButton()
+        self.volume_view.connect('value_changed', self.change_volume)
+        hbox = gtk.HBox(False, 0)
+        hbox.pack_start(self.progress_view, True, True, 1)
+        hbox.pack_start(self.volume_view, False, False, 1)
+        view.pack_start(hbox, False, False, 1)
+ 
         # Control buttons 
         hbox = gtk.HBox(False, 0)
         def controll_button(name, tip):
@@ -802,6 +815,10 @@ class Player:
         self.S_mode = False
         self.L_mode = False
         
+    def change_volume(self, w, d):
+        self.volume = int(w.get_value() * 100)
+        self.slave.send('volume %d 1' % self.volume)
+
     def error_check(self):
         '''Check to see if we have pending errors to read, mainly for detecting wrong mp3 length
            unexpect file ending, file is shorter than the length in meta data
@@ -934,12 +951,16 @@ class Player:
         self.meta_pos_view.set_text('%s/%s' %(self.format_seconds(self.meta_pos), self.format_seconds(self.meta_total)))
 
     def progress_value_changed(self, data):
+        if self.idle: # If there are no song to play, no effect
+            return
         # Only update time info when seeking
         if not self.timer_enable:
             self.meta_pos = int(self.progress.get_value() / 100 * self.meta_total)
             self.meta_pos_view_update()
 
     def progress_view_button_release_event(self, event, data):
+        if self.idle:
+            return
         log('Seek end')
         # Re enable timer
         self.set_cb_state(self.cb_play, 'pause')
