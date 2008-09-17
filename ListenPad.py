@@ -25,7 +25,7 @@ from misc import *
 
 LP_NAME = 'ListenPad' 
 LP_VERSION = 'v0.1.1'
-LP_CODE_NAME = '真的爱你'
+LP_CODE_NAME = '世界末日'
 LP_WIDTH = 225
 LP_HEIGHT = 400
 
@@ -212,7 +212,7 @@ class Menu:
             'license': 'GPL v2',
             'website': 'http://code.google.com/p/listenpad',
             'authors': ['Chen Zheng <nkthunder@gmail.com>'],
-            'comments': 'ListenPad: a light music player for linux\n code name: %s' % LP_CODE_NAME,
+            'comments': 'ListenPad: a light music player for linux\n 开发代号: %s' % LP_CODE_NAME,
             }
         for k, v in infos.items():
             name = 'set_' + k
