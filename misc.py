@@ -48,3 +48,12 @@ def normalize_name(name):
 def escape_path(file):
     file = file.replace('\'', '\\\'')
     return '\'%s\'' % file
+
+def get_string(input):
+    '''read a string, strip and encode it with utf8, remove extra \'"\' '''
+    s = to_utf8(input.strip())
+    if s[0] == '"':
+        s = s[1:]
+    if s[-1] == '"':
+        s = s[:-1]
+    return s

@@ -22,10 +22,11 @@ import random
 import thread
 import fcntl
 from misc import *
+from cue import *
 
 LP_NAME = 'ListenPad' 
-LP_VERSION = 'v0.1.1'
-LP_CODE_NAME = '世界末日'
+LP_VERSION = 'v0.1.2'
+LP_CODE_NAME = '光辉岁月'
 LP_WIDTH = 225
 LP_HEIGHT = 400
 
@@ -623,10 +624,10 @@ class PlayListView:
     def __init__(self, proxy):
 
         self.proxy = proxy # Controller
+        self.cds = {} # Cue files cache
 
-        # Model of this View, real data
-        # the first 'str' is abosolute file path
-        self.liststore = gtk.ListStore(str, str) 
+        # Model of this View, real data: path, title, artist, track, index, length
+        self.liststore = gtk.ListStore(str, str, str, int, int, int) 
         self.treeview = gtk.TreeView(self.liststore)
 
         style = gtk.CellRendererText()
@@ -692,6 +693,24 @@ class PlayListView:
         else:
             self.add_file(file)
 
+    def load_cue(self, file):
+        '''
+        Return cue parse result of file. 
+        If cue file doesn't exist or wrong format, return None
+        '''
+        if file in self.cds:
+            log('Cache found: ' + file)
+            return self.cds[file]
+        name, ext =  os.path.splitext(file)
+        cue_file = name + '.cue'
+        cd = Cue(cue_file)
+        if cd.tracks: # The format is right
+            log('Cue loaded: ' + file)
+            cd.file = file
+            self.cds[file] = cd
+            return cd
+        return None
+
     def add_file(self, file):
         if not self.check_file(file):
             return
@@ -702,38 +721,69 @@ class PlayListView:
             return
 
         log('Add File ' + file)
-        name = os.path.splitext(os.path.basename(file))[0]
+        name, ext =  os.path.splitext(os.path.basename(file))
+        if ext in ['.flac', '.ape', '.ogg']: # Dont check cue file for mp3
+            cd = self.load_cue(file)
+            if cd:
+                self.add_cd(cd)
+                return
         name = to_utf8(name)
-        self.liststore.append([file, name])
+        self.liststore.append([file, name, '', -1, 0, 0])
 
     def add_dir(self, dir):
         log('Add Dir ' + dir)
         for f in os.listdir(dir):
             self.add(os.path.join(dir, f))
     
+    def add_cd(self, cd):
+        for track in cd.tracks.keys():
+            self.add_track(cd, track)
+
+    def add_track(self, cd, track):
+        if track in cd.tracks:
+            log('Add track %d of %s' % (track, cd.file))
+            meta  = cd.tracks[track]
+            self.liststore.append([cd.file, meta['title'], meta['performer'], track, meta['index'], meta['length']])
+
     def load(self, file):
         file = os.path.expanduser(file)
         tmp = {}
         if os.path.isfile(file):
             execfile(file, {}, tmp)
-            # Dont know how to get system volume in pygtk, so just read old value from file
-            if 'volume' in tmp:
+            version = 1 
+            if 'version' in tmp:
+                version = tmp['version']
+
+            vol = 60
+            if version >= 2:
+                # Dont know how to get system volume in pygtk, so just read old value from file
                 vol = tmp['volume']
-            else:
-                vol = 60
             self.proxy.player.volume = vol
             self.proxy.player.volume_view.set_value(vol / 100.0)
+
             if 'playlist' in tmp:
                 for f in tmp['playlist']:
-                    self.add_file(f)
+                    if version == 1:
+                        self.add_file(f)
+                    else:
+                        if isinstance(f, tuple):
+                            cd = self.load_cue(f[0])
+                            if cd:
+                                self.add_track(cd, f[1])
+                        else:
+                           self.add_file(f)
 
     def save(self, file):
         file = os.path.expanduser(file)
         f = open(file, 'w+')
         plist = []
         for item in self.liststore:
-            plist.append(item[0])
-        f.write('playlist = ' + str(plist) + '\nvolume=%d' % self.proxy.player.volume)
+            track = item[3]
+            if track == -1:
+                plist.append(item[0])
+            else:
+                plist.append((item[0], track))
+        f.write('version=2\n' + 'playlist = ' + str(plist) + '\nvolume=%d' % self.proxy.player.volume)
         f.close()
  
 
@@ -851,27 +901,48 @@ class Player:
 
         self.idle = False
 
+        self.index = 0 # Offset
+        self.meta_pos = 0
+        file, title, artist, track, index, length = self.proxy.playlist_view.liststore[id]
+        is_track = False
+        if track is not -1: #
+            is_track = True
+            log('Play track %d' % track)
+            self.index = index
+            self.meta_total = length
+
         # Deal with special chars in shell command, yes, it's ugly but very effective
         self.timer = gobject.timeout_add(1000, self.timer_callback, self) # Start a new one
         self.error = False
-        self.slave.send('loadfile %s' % escape_path(file))
+        if not is_track:
+            self.slave.send('loadfile %s' % escape_path(file))
+        else:
+            # We need the function of playing from offset index, but mplayer doesn't provide it
+            # Even if we pause after loadfile, once you issue 'seek ...', mplayer will start playing before seeking done
+            # So there are always some noise before playing from the right position.
+            self.slave.send('mute 1\npausing loadfile %s\nseek %d 2\nmute 0' % (escape_path(file), self.index))
         self.timer_enable = True
 
         # Get info, meta data has been converted to utf8 already
         meta = self.slave.get_meta()
         if meta == None:
-            log('Bad format' + file)
+            log('Bad format ' + file)
             self.play_next()
             return
 
-        self.meta_pos = 0
-        self.meta_total = meta['length']
+        if not is_track:
+            title = meta['title']
+            self.meta_total = meta['length']
+            artist = meta['artist']
+        else:
+            # All titles and artists are the same using get_meta(), so we just keep infos of the track 
+            if self.meta_total == -1: # Final track
+                self.meta_total = meta['length'] - self.index
+
         self.meta_pos_view_update()
-        title = meta['title']
         if not title:
             title = os.path.splitext(os.path.basename(file))[0]
         self.meta.set_label('%s %s' % (title, meta['bitrate']))
-        artist = meta['artist']
         self.tooltips.set_tip(self.meta, '%s-%s' % (artist, meta['album']))
         self.set_cb_state(self.cb_play, 'pause')
 
@@ -965,7 +1036,7 @@ class Player:
         # Re enable timer
         self.set_cb_state(self.cb_play, 'pause')
         self.timer_enable = True
-        self.slave.send('seek %d 2' % self.meta_pos)
+        self.slave.send('seek %d 2' % (self.meta_pos + self.index))
 
     def progress_view_button_press_event(self, event, data):
         log('Seek begin')
