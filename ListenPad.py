@@ -25,7 +25,7 @@ from misc import *
 from cue import *
 
 LP_NAME = 'ListenPad' 
-LP_VERSION = 'v0.1.2'
+LP_VERSION = 'v0.1.2 RC1'
 LP_CODE_NAME = '光辉岁月'
 LP_WIDTH = 225
 LP_HEIGHT = 400

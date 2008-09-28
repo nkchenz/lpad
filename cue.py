@@ -41,10 +41,15 @@ class Cue:
 
             if line.startswith('INDEX'):
                 _, id, time = line.split()
-                if id == '01':
-                    min, sec, _ = time.split(':')
-                    track['index'] = int(min) * 60 + int(sec)
-                    # Compute length of last track.
+                min, sec, _ = time.split(':')
+                index = int(min) * 60 + int(sec)
+                # We prefer INDEX 00
+                if id is '00':
+                    track['index'] = index
+                else:
+                    if 'index' not in track:
+                        track['index'] = index
+                    # Compute length of last track. Hope there shall always be INDEX 01
                     if last_track:
                         last_track['length'] = track['index'] - last_track['index']
                 continue
