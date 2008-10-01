@@ -698,6 +698,10 @@ class PlayListView:
         Return cue parse result of file. 
         If cue file doesn't exist or wrong format, return None
         '''
+        if not os.path.isfile(file):
+            log('File not found: ' + file)
+            return None
+
         if file in self.cds:
             log('Cache found: ' + file)
             return self.cds[file]
@@ -915,12 +919,20 @@ class Player:
         self.timer = gobject.timeout_add(1000, self.timer_callback, self) # Start a new one
         self.error = False
         if not is_track:
-            self.slave.send('loadfile %s' % escape_path(file))
+            self.slave.send('loadfile %s\nvolume %d 1' % (escape_path(file), self.volume))
+            #self.slave.send('loadfile %s' % escape_path(file))
+            #self.volume_view.set_value(self.volume / 100.0)
         else:
             # We need the function of playing from offset index, but mplayer doesn't provide it
-            # Even if we pause after loadfile, once you issue 'seek ...', mplayer will start playing before seeking done
-            # So there are always some noise before playing from the right position.
-            self.slave.send('mute 1\npausing loadfile %s\nseek %d 2\nmute 0' % (escape_path(file), self.index))
+            # 'pausing loadfile' doesn't work in idle slave mode
+            #self.slave.send('loadfile %s\npause\nseek %d 2\nget_percent_pos\nvolume %d 1' % \
+            #            (escape_path(file), self.index, self.volume))
+            self.slave.send('loadfile %s\nseek %d 2' % (escape_path(file), self.index))
+            # mplayer不能实现精确seek: seek后硬件缓冲中仍有seek前的部分音频信息
+            # 如果立即打开音量，会听到杂音。临时的解决办法是，暂时睡眠一会儿。
+            # 理想状态是seek之后清除以前的缓冲，精确定位
+            time.sleep(1.5)
+            self.slave.send('volume %d 1' % self.volume)
         self.timer_enable = True
 
         # Get info, meta data has been converted to utf8 already
@@ -937,7 +949,7 @@ class Player:
         else:
             # All titles and artists are the same using get_meta(), so we just keep infos of the track 
             if self.meta_total == -1: # Final track
-                self.meta_total = meta['length'] - self.index
+                self.meta_total = int(meta['length'] - self.index)
 
         self.meta_pos_view_update()
         if not title:
@@ -1050,7 +1062,7 @@ class Player:
             return True
         self.meta_pos += 1
         self.error_check()
-        if self.meta_pos > self.meta_total or self.error:
+        if self.meta_pos >= self.meta_total or self.error:
             self.play_next()
             return False
         self.progress.set_value(float(self.meta_pos) / self.meta_total * 100) 
