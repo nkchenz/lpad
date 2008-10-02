@@ -384,11 +384,11 @@ class LyricView:
 
         tmp = gtk.Label('歌词引擎')
         hbox.pack_start(tmp, False, False, 1)
-        engine = gtk.RadioButton(None, "Google")
-        hbox.pack_start(engine, False, False, 1)
-        engine = gtk.RadioButton(engine, "Baidu")
+        engine = gtk.RadioButton(None, "Baidu")
         engine.set_active(True)
         hbox.pack_start(engine, False, False, 1)
+        #engine = gtk.RadioButton(engine, "Google")
+        #hbox.pack_start(engine, False, False, 1)
     
         button = gtk.Button('More')
         button.connect('clicked', self.hide_tool_panel)

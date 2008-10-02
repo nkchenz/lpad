@@ -1,4 +1,4 @@
 mkdir -p ListenPad/usr/share/listenpad
 cp *.py ListenPad/usr/share/listenpad
 dpkg-deb -b ListenPad
-rm ListenPad/usr/share/listenpad/ListenPad.py
+rm -rf ListenPad/usr/share/listenpad/*
