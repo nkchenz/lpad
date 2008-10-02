@@ -15,6 +15,7 @@ class Cue:
         if not os.path.isfile(file):        
             return
         track = {} 
+        track['indexs'] = []
         track_no = None
         last_track = None
         for line in open(file).readlines():
@@ -25,6 +26,7 @@ class Cue:
                     self.tracks[track_no] =  track
                     last_track = track # Save last track, need to compute its length
                     track = {}
+                    track['indexs'] = []
                 track_no = int(line.split()[1])
                 continue
 
@@ -43,19 +45,17 @@ class Cue:
                 _, id, time = line.split()
                 min, sec, f = time.split(':')
                 index = int(min) * 60 + float(sec + '.' + f)
-                # We prefer INDEX 00
-                #if id is '00':
-                if 'indexs' not in track:
-                    track['indexs'] = []
                 track['indexs'].append(index)
                 
-                if len(track['indexs']) == 2:
-                    track['index'] = track['indexs'][1] # INDEX 01 is start of this track, 00 is end of last track
+                if id == '01':
+                    # INDEX 01 is start of this track, 00 is end of last track
+                    last_track_end = track['indexs'][0]
+                    track['index'] = track['indexs'][0]
+                    if len(track['indexs']) == 2: # Have both 00 and 01
+                        track['index'] = track['indexs'][1]
                     # Compute length of last track
                     if last_track:
-                        last_track['length'] = int(track['indexs'][0] - last_track['index'])
-                else:
-                    track['index'] = track['indexs'][0] # There must be one
+                        last_track['length'] = int(last_track_end - last_track['index'])
                 continue
 
         if track_no:
