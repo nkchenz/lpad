@@ -14,8 +14,7 @@ class Cue:
         self.file = ''
         if not os.path.isfile(file):        
             return
-        track = {} 
-        track['indexs'] = []
+        track = {'indexs': [], 'performer': ''} 
         track_no = None
         last_track = None
         for line in open(file).readlines():
@@ -25,8 +24,7 @@ class Cue:
                 if track_no:
                     self.tracks[track_no] =  track
                     last_track = track # Save last track, need to compute its length
-                    track = {}
-                    track['indexs'] = []
+                    track = {'indexs': [], 'performer': ''} 
                 track_no = int(line.split()[1])
                 continue
 
