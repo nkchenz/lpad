@@ -736,7 +736,7 @@ class PlayListView:
 
     def add_dir(self, dir):
         log('Add Dir ' + dir)
-        for f in os.listdir(dir):
+        for f in sorted(os.listdir(dir)):
             self.add(os.path.join(dir, f))
     
     def add_cd(self, cd):
@@ -931,7 +931,8 @@ class Player:
             # mplayer不能实现精确seek: seek后硬件缓冲中仍有seek前的部分音频信息
             # 如果立即打开音量，会听到杂音。临时的解决办法是，暂时睡眠一会儿。
             # 理想状态是seek之后清除以前的缓冲，精确定位
-            time.sleep(1.5)
+            if track != 0:
+                time.sleep(1.5)
             self.slave.send('volume %d 1' % self.volume)
         self.timer_enable = True
 
