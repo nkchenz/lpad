@@ -12,7 +12,13 @@ python, python-gtk2, mplayer, gstreamer0.10-plugins-ugly
     python ListenPad.py
 
 已知问题
-mplayer有的歌曲长度信息识别有误，暂不影响播放
+mplayer的播放对有的歌曲长度信息识别有误，暂不影响播放
+
+发现有的cue文件定位不准，但是在win下一切正常，经测量可以听到音乐的时间，也就是
+实际播放时间为real_t，和win差不多是一样的。只是显示时间display_t的问题。假设cue
+中的偏移量正确，从win正常可以得出，那么如果mplayer的seek工作正常，经过real_t后，
+音乐应该停止。但实际上并没有停止，音乐滞后，可以得出seek工作并不正常，seek后的
+位置小于给定的位置。初步猜测可能和音乐文件的编码比特率有关系
 
 帮助
 在播放列表中，可以使用d，D，Del键删除选定的项
