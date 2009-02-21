@@ -1,0 +1,182 @@
+实际时间： 04:15, 04:13
+显示时间： A: 269.9 (04:29.8) of 4131.0 ( 1:08:51.0)  1.5%   感觉这个时间并不准确，有一定的缓冲。播放时间位置一直落后于这个显示时间。
+
+         04:20 
+
+
+ideer@ideer:/home/chenz/aMule/Incoming/MusiCD$ time mplayer  -ao alsa  LPCD45之等你等到我心痛精选.flac
+MPlayer 1.0rc2-4.2.3 (C) 2000-2007 MPlayer Team
+CPU: Intel(R) Core(TM)2 Duo CPU     T5750  @ 2.00GHz (Family: 6, Model: 15, Stepping: 13)
+CPUflags:  MMX: 1 MMX2: 1 3DNow: 0 3DNow2: 0 SSE: 1 SSE2: 1
+Compiled with runtime CPU detection.
+/home/ideer/.fonts/STHeiti.ttf doesn't look like a bitmap font description, ignoring.
+Cannot load bitmap font: /home/ideer/.fonts/STHeiti.ttf
+mplayer: could not connect to socket
+mplayer: No such file or directory
+Failed to open LIRC support. You will not be able to use your remote control.
+
+Playing LPCD45之等你等到我心痛精选.flac.
+Audio file file format detected.
+Clip info:
+ Album: LPCD45之等你等到我心痛精选
+ Artist: 张学友
+==========================================================================
+Forced audio codec: mad
+Opening audio decoder: [ffmpeg] FFmpeg/libavcodec audio decoders
+AUDIO: 44100 Hz, 2 ch, s16le, 858.9 kbit/60.86% (ratio: 107359->176400)
+Selected audio codec: [ffflac] afm: ffmpeg (FFmpeg FLAC audio decoder)
+==========================================================================
+AO: [alsa] 48000Hz 2ch s16le (2 bytes per sample)
+Video: no video
+Starting playback...
+A: 264.2 (04:24.1) of 4131.0 ( 1:08:51.0)  1.5% 
+
+MPlayer interrupted by signal 2 in module: play_audio
+
+real	4m13.190s
+user	0m6.400s
+sys	0m0.724s
+
+
+手机计时 00:04:14:98s
+
+说明实际歌曲长度在4:13左右，但是我们seek到253s，歌曲并没有结束
+
+
+
+
+
+
+
+
+
+ideer@ideer:/home/chenz/aMule/Incoming/MusiCD$ time mplayer  -ao alsa  LPCD45之等你等到我心痛精选.flac
+MPlayer 1.0rc2-4.2.3 (C) 2000-2007 MPlayer Team
+CPU: Intel(R) Core(TM)2 Duo CPU     T5750  @ 2.00GHz (Family: 6, Model: 15, Stepping: 13)
+CPUflags:  MMX: 1 MMX2: 1 3DNow: 0 3DNow2: 0 SSE: 1 SSE2: 1
+Compiled with runtime CPU detection.
+/home/ideer/.fonts/STHeiti.ttf doesn't look like a bitmap font description, ignoring.
+Cannot load bitmap font: /home/ideer/.fonts/STHeiti.ttf
+mplayer: could not connect to socket
+mplayer: No such file or directory
+Failed to open LIRC support. You will not be able to use your remote control.
+
+Playing LPCD45之等你等到我心痛精选.flac.
+Audio file file format detected.
+Clip info:
+ Album: LPCD45之等你等到我心痛精选
+ Artist: 张学友
+==========================================================================
+Forced audio codec: mad
+Opening audio decoder: [ffmpeg] FFmpeg/libavcodec audio decoders
+AUDIO: 44100 Hz, 2 ch, s16le, 858.9 kbit/60.86% (ratio: 107359->176400)
+Selected audio codec: [ffflac] afm: ffmpeg (FFmpeg FLAC audio decoder)
+==========================================================================
+AO: [alsa] 48000Hz 2ch s16le (2 bytes per sample)
+Video: no video
+Starting playback...
+A: 263.8 (04:23.8) of 4131.0 ( 1:08:51.0)  1.5% 
+
+MPlayer interrupted by signal 2 in module: play_audio
+
+real	4m12.802s
+user	0m6.520s
+sys	0m0.864s
+
+
+手机时间：00:04:12:59s
+
+
+
+
+
+ideer@ideer:/home/chenz/aMule/Incoming/MusiCD$ time mplayer  -ao alsa  LPCD45之等你等到我心痛精选.flac
+MPlayer 1.0rc2-4.2.3 (C) 2000-2007 MPlayer Team
+CPU: Intel(R) Core(TM)2 Duo CPU     T5750  @ 2.00GHz (Family: 6, Model: 15, Stepping: 13)
+CPUflags:  MMX: 1 MMX2: 1 3DNow: 0 3DNow2: 0 SSE: 1 SSE2: 1
+Compiled with runtime CPU detection.
+/home/ideer/.fonts/STHeiti.ttf doesn't look like a bitmap font description, ignoring.
+Cannot load bitmap font: /home/ideer/.fonts/STHeiti.ttf
+mplayer: could not connect to socket
+mplayer: No such file or directory
+Failed to open LIRC support. You will not be able to use your remote control.
+
+Playing LPCD45之等你等到我心痛精选.flac.
+Audio file file format detected.
+Clip info:
+ Album: LPCD45之等你等到我心痛精选
+ Artist: 张学友
+==========================================================================
+Forced audio codec: mad
+Opening audio decoder: [ffmpeg] FFmpeg/libavcodec audio decoders
+AUDIO: 44100 Hz, 2 ch, s16le, 858.9 kbit/60.86% (ratio: 107359->176400)
+Selected audio codec: [ffflac] afm: ffmpeg (FFmpeg FLAC audio decoder)
+==========================================================================
+AO: [alsa] 48000Hz 2ch s16le (2 bytes per sample)
+Video: no video
+Starting playback...
+A: 264.1 (04:24.0) of 4131.0 ( 1:08:51.0)  1.5% 
+
+MPlayer interrupted by signal 2 in module: play_audio
+
+real	4m13.072s
+user	0m6.384s
+sys	0m0.760s
+
+手机时间: 00:04:12:82
+
+
+
+
+
+
+
+
+
+ideer@ideer:/home/chenz/aMule/Incoming/MusiCD$ time mplayer  -ao alsa  '黄凯芹 LPCD45.flac'
+MPlayer 1.0rc2-4.2.3 (C) 2000-2007 MPlayer Team
+CPU: Intel(R) Core(TM)2 Duo CPU     T5750  @ 2.00GHz (Family: 6, Model: 15, Stepping: 13)
+CPUflags:  MMX: 1 MMX2: 1 3DNow: 0 3DNow2: 0 SSE: 1 SSE2: 1
+Compiled with runtime CPU detection.
+/home/ideer/.fonts/STHeiti.ttf doesn't look like a bitmap font description, ignoring.
+Cannot load bitmap font: /home/ideer/.fonts/STHeiti.ttf
+mplayer: could not connect to socket
+mplayer: No such file or directory
+Failed to open LIRC support. You will not be able to use your remote control.
+
+Playing 黄凯芹 LPCD45.flac.
+Audio file file format detected.
+Clip info:
+ Album: LPCD45之黄凯芹
+ Artist: 黄凯芹
+==========================================================================
+Forced audio codec: mad
+Opening audio decoder: [ffmpeg] FFmpeg/libavcodec audio decoders
+AUDIO: 44100 Hz, 2 ch, s16le, 835.8 kbit/59.23% (ratio: 104479->176400)
+Selected audio codec: [ffflac] afm: ffmpeg (FFmpeg FLAC audio decoder)
+==========================================================================
+AO: [alsa] 48000Hz 2ch s16le (2 bytes per sample)
+Video: no video
+Starting playback...
+A: 264.0 (04:24.0) of 4028.0 ( 1:07:08.0)  1.5% 
+
+MPlayer interrupted by signal 2 in module: play_audio
+
+real	4m18.166s
+user	0m6.864s
+sys	0m0.872s
+
+手机时间： 00:04:17:95
+
+
+这个显示时间也许只是缓冲区内的时间，并不是实际已经播放的时间。seek操作可能是根据这个时间来进行，但是
+这是错误的。但是绝对寻址不应该根据这个时间啊，困惑。
+
+
+假设p1指向实际的播放位置，p2指向缓冲区中已经解码的位置，seek delta的结果应该是 p1 = p1 + delta，
+而不是仅把delta之后的加到缓冲区中。先清空p1，然后另p1指向新的位置。
+
+
+seek不但不能清空缓冲区，
+
+
