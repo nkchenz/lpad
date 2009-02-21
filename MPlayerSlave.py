@@ -2,7 +2,7 @@
 #encoding: utf8
 """
 MPlayerSlave: Python binding for mplayer slave mode
-CopyRight (C) 2008 Chen Zheng <nkthunder@gmail.com> 
+CopyRight (C) 2008 Chen Zheng <nkchenz@gmail.com> 
 
 Distributed under terms of GPL v2
 """

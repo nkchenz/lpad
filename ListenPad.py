@@ -2,7 +2,7 @@
 #encoding: utf8
 """
 ListenPad: Light mp3 player for linux.
-CopyRight (C) 2008 Chen Zheng <nkthunder AT gmail.com>
+CopyRight (C) 2008 Chen Zheng <nkchenz@gmail.com>
  
 Distributed under terms of GPL v2
 """
@@ -212,8 +212,8 @@ class Menu:
             'copyright': '(C) 2008 Chen Zheng',
             'license': 'GPL v2',
             'website': 'http://code.google.com/p/listenpad',
-            'authors': ['Chen Zheng <nkthunder@gmail.com>'],
-            'comments': 'ListenPad: a light music player for linux\n 开发代号: %s' % LP_CODE_NAME,
+            'authors': ['Chen Zheng <nkchenz@gmail.com>'],
+            'comments': 'ListenPad: a light music player for linux\n%s' % LP_CODE_NAME,
             }
         for k, v in infos.items():
             name = 'set_' + k

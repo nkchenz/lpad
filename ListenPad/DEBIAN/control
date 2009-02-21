@@ -8,7 +8,7 @@ Depends: python, python-gtk2, mplayer, gstreamer0.10-plugins-ugly
 Enhances: 
 Suggests:
 Installed-Size: 10
-Maintainer: Chen Zheng [nkthunder@gmail.com]
+Maintainer: Chen Zheng [nkchenz@gmail.com]
 Provides:ListenPad
 Description:
     ListenPad: Light mp3 player for Linux.
