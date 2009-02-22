@@ -14,8 +14,8 @@ import gtk
 import gobject
 import pango
 import glob
-from Lyric import *
-from MPlayerSlave import *
+from lyric import *
+from mslave import *
 import time
 import urllib
 import random

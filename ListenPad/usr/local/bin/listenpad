@@ -1,4 +1,4 @@
 #!/bin/bash
 
-exec python /usr/share/listenpad/ListenPad.py
+exec python /usr/share/listenpad/listenpad.py
 
