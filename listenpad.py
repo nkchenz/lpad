@@ -750,7 +750,7 @@ class PlayListView:
             self.liststore.append([cd.file, meta['title'], meta['performer'], track, meta['index'], meta['length']])
 
     def load(self, file):
-        file = os.path.expanduser(file)
+        #file = os.path.expanduser(file)
         tmp = {}
         if os.path.isfile(file):
             execfile(file, {}, tmp)
@@ -778,7 +778,7 @@ class PlayListView:
                            self.add_file(f)
 
     def save(self, file):
-        file = os.path.expanduser(file)
+        #file = os.path.expanduser(file)
         f = open(file, 'w+')
         plist = []
         for item in self.liststore:
@@ -868,6 +868,11 @@ class Player:
         self.R_mode = False
         self.S_mode = False
         self.L_mode = False
+
+	# Set default volume
+	self.volume = 70
+	self.volume_view.set_value(self.volume / 100.0)
+
         
     def change_volume(self, w, d):
         self.volume = int(w.get_value() * 100)
@@ -1114,6 +1119,9 @@ class Controller:
 
     def delete_event(self, widget, event, data=None):
         # Save playlist 
+	default_dir = os.path.dirname(self.default_playlist)
+	if not os.path.isdir(default_dir):
+	    os.mkdir(default_dir)
         self.playlist_view.save(self.default_playlist)
 
         if self.player.timer:
@@ -1170,7 +1178,7 @@ class Controller:
         self.load_conf()
 
     def load_conf(self):
-        self.default_playlist = LP_PLAYLIST_DEFAULT_FILE
+	self.default_playlist = os.path.expanduser(LP_PLAYLIST_DEFAULT_FILE)
         self.playlist_view.load(self.default_playlist)   
 
 gtk.gdk.threads_init()
