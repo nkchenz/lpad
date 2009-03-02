@@ -7,20 +7,15 @@ http://code.google.com/p/listenpad/
 
 依赖
 
-python, python-gtk2, mplayer, gstreamer0.10-plugins-ugly
+    python, python-gtk2, mplayer, gstreamer0.10-plugins-ugly
+
+    apt用户可使用下列命令安装依赖关系
+    sudo apt-get install python python-gtk2 mplayer gstreamer0.10-plugins-ugly
 
 
 运行
 
     python listenpad.py
-
-
-Deb包(debian, ubuntu用户)
-
-    ./create_deb
-    将会生成listenpad.deb, 使用下列命令安装，自动解决依赖关系
-    sudo dpkg -i listenpad.deb
-    sudo apt-get install -f
 
 
 已知问题

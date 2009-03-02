@@ -1,4 +1,0 @@
-mkdir -p listenpad/usr/share/listenpad
-cp *.py listenpad/usr/share/listenpad
-dpkg-deb -b listenpad
-rm -rf listenpad/usr/share/listenpad/*
