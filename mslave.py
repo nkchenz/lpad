@@ -13,7 +13,9 @@ from misc import *
 # Use  -af volume=-200 -softvol to mute mixer after loading every song, mainly for 
 # cue track playing. Because 'pausing loadfile' wont work in idle mode
 # Just set volume back when you are ready to play
-MPLAYER_CMD = 'mplayer -slave -quiet -idle  -ao alsa -af volume=-100 -softvol '
+#MPLAYER_CMD = 'mplayer -slave -quiet -idle  -ao alsa -af volume=-100 -softvol '
+# I'm not sure whether we should keep '-ao alsa'
+MPLAYER_CMD = 'mplayer -slave -quiet -idle -af volume=-100 -softvol '
 
 class MPlayerSlave(object):
     """
