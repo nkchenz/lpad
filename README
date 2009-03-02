@@ -5,13 +5,26 @@ Distributed under terms of GPL v2
 http://code.google.com/p/listenpad/
 
 
-依赖于:
+依赖
+
 python, python-gtk2, mplayer, gstreamer0.10-plugins-ugly
 
+
 运行
-    python ListenPad.py
+
+    python listenpad.py
+
+
+Deb包(debian, ubuntu用户)
+
+    ./create_deb
+    将会生成listenpad.deb, 使用下列命令安装，自动解决依赖关系
+    sudo dpkg -i listenpad.deb
+    sudo apt-get install -f
+
 
 已知问题
+
 mplayer的播放对有的歌曲长度信息识别有误，暂不影响播放
 
 发现有的cue文件定位不准，但是在win下一切正常，经测量可以听到音乐的时间，也就是
@@ -20,5 +33,8 @@ mplayer的播放对有的歌曲长度信息识别有误，暂不影响播放
 音乐应该停止。但实际上并没有停止，音乐滞后，可以得出seek工作并不正常，seek后的
 位置小于给定的位置。初步猜测可能和音乐文件的编码比特率有关系
 
+
 帮助
-在播放列表中，可以使用d，D，Del键删除选定的项
+
+在播放列表中，可以使用d，D，Del键删除选定的歌曲
+
