@@ -24,7 +24,7 @@ import fcntl
 from misc import *
 from cue import *
 
-LP_NAME = 'ListenPad' 
+LP_NAME = 'LPad' 
 LP_VERSION = '2009.3'
 LP_CODE_NAME = '光辉岁月'
 LP_WIDTH = 225
@@ -213,7 +213,7 @@ class Menu:
             'license': 'GPL v2',
             'website': 'http://code.google.com/p/listenpad',
             'authors': ['Chen Zheng <nkchenz@gmail.com>'],
-            'comments': 'ListenPad: a light music player for linux\n%s' % LP_CODE_NAME,
+            'comments': 'light music player for linux\n%s' % LP_CODE_NAME,
             }
         for k, v in infos.items():
             name = 'set_' + k
