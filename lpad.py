@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #encoding: utf8
 """
-ListenPad: Light mp3 player for linux.
+LPad: Light mp3 player for linux.
 CopyRight (C) 2008 Chen Zheng <nkchenz@gmail.com>
  
 Distributed under terms of GPL v2
@@ -66,10 +66,10 @@ def insert_one_tag_into_buffer(buffer, name, *params):
     table.add(tag)
 
 def create_tags (buffer):
-  insert_one_tag_into_buffer(buffer, "playing", 
-                            "weight", pango.WEIGHT_BOLD,  
+    insert_one_tag_into_buffer(buffer, "playing",
+                            "weight", pango.WEIGHT_BOLD,
                             "foreground", "white")
-  insert_one_tag_into_buffer(buffer, "none")
+    insert_one_tag_into_buffer(buffer, "none")
 
 class Menu:
     ui = '''<ui>
@@ -238,14 +238,14 @@ class LyricChooser:
         self.sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
      
 
-        self.liststore = gtk.ListStore(str, str, str) 
+        self.liststore = gtk.ListStore(str, str, str)
         self.treeview = gtk.TreeView(self.liststore)
 
         style = gtk.CellRendererText()
         col = gtk.TreeViewColumn('artist', style, text = 1)
         self.treeview.append_column(col)
         col = gtk.TreeViewColumn('title', style, text = 2)
-        self.treeview.append_column(col) 
+        self.treeview.append_column(col)
         col = gtk.TreeViewColumn('link', style, text = 0)
         self.treeview.append_column(col)
 
@@ -311,7 +311,7 @@ class DebugWindow:
         self.proxy = None
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.set_title('Debug-' + LP_NAME)
-        self.window.set_size_request(LP_WIDTH * 2, LP_HEIGHT / 2)        
+        self.window.set_size_request(LP_WIDTH * 2, LP_HEIGHT / 2)
         self.window.connect("delete_event", self.hide_on_close)
 
         self.sw = gtk.ScrolledWindow()
@@ -347,7 +347,7 @@ class DebugWindow:
         pos = self.textbuffer.get_end_iter()
         #self.textbuffer.insert(pos, '%s %s\n' % (time.ctime(), s))
         self.textbuffer.insert(pos, '%s\n' % (s))
-        self.textview.scroll_to_iter(self.textbuffer.get_end_iter(), 0, True, 1.0, 0.8) 
+        self.textview.scroll_to_iter(self.textbuffer.get_end_iter(), 0, True, 1.0, 0.8)
  
 
 class LyricView:
@@ -357,7 +357,7 @@ class LyricView:
 
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.set_title('Lyric-' + LP_NAME)
-        self.window.set_size_request(LP_WIDTH * 2, LP_HEIGHT)        
+        self.window.set_size_request(LP_WIDTH * 2, LP_HEIGHT)
         self.window.connect("delete_event", self.hide_on_close)
 
         self.sw = gtk.ScrolledWindow()
@@ -501,8 +501,8 @@ class LyricView:
         if self.curr_ar != None and keywords:
             thread.start_new_thread(self.search_internet, ('', keywords))
 
-    # Dont care what 'a' 'b' really are
     def hide_on_close(self, a, b):
+        # Dont care what 'a' 'b' really are
         self.window.hide()
         self.proxy.menu.change_state('Lyric', False)
         return True 
@@ -520,7 +520,7 @@ class LyricView:
             if sec >= pos:
                 if sec > pos + 1:
                     return # Too early
-                tmp = text.strip() 
+                tmp = text.strip()
                 if tmp is '': # Blank
                     continue
                 self.show_line(i)
@@ -550,7 +550,6 @@ class LyricView:
             self.textbuffer.apply_tag_by_name(tag, start, end)
 
     def search_internet(self, ar, ti):
-
         #print 'thread se started'
         self.add_line('Searching from %s' % self.repo.search_engine)
         self.add_line('%s %s' % (ar, ti))
@@ -582,7 +581,7 @@ class LyricView:
         ar, ti = self.curr_ar, self.curr_ti
         self.add_line('Saving to ' + self.repo.get_path(ar, ti))
         self.repo.save_lyric(ar, ti, data)
-        self.add_line('Done, reloading')        
+        self.add_line('Done, reloading')
         time.sleep(1)
         
         # Lyric has been saved, so call show_lyric again it will find it in local repo
@@ -627,7 +626,7 @@ class PlayListView:
         self.cds = {} # Cue files cache
 
         # Model of this View, real data: path, title, artist, track, index, length
-        self.liststore = gtk.ListStore(str, str, str, int, int, int) 
+        self.liststore = gtk.ListStore(str, str, str, int, int, int)
         self.treeview = gtk.TreeView(self.liststore)
 
         style = gtk.CellRendererText()
@@ -834,7 +833,7 @@ class Player:
             self.tooltips.set_tip(button, tip)
             button.connect('clicked', self.controll_button_callback, name)
             # Save a reference here, we need to change 'play' button when double click to play
-            setattr(self, 'cb_' + name, button) 
+            setattr(self, 'cb_' + name, button)
         
         #controll_button('previous', '上一首')
         controll_button('next', '下一首')
@@ -869,9 +868,9 @@ class Player:
         self.S_mode = False
         self.L_mode = False
 
-	# Set default volume
-	self.volume = 70
-	self.volume_view.set_value(self.volume / 100.0)
+        # Set default volume
+        self.volume = 70
+        self.volume_view.set_value(self.volume / 100.0)
 
         
     def change_volume(self, w, d):
@@ -995,7 +994,7 @@ class Player:
             # So just play a little trick here.
             # It's the pay for being a frontend. You can easily stop playing and do other control stuffs
             # if you are using decoder of your own
-            self.slave.send('loadfile no_such_file') 
+            self.slave.send('loadfile no_such_file')
             self.idle = True
             self.play_stop()
 
@@ -1071,7 +1070,7 @@ class Player:
         if self.meta_pos >= self.meta_total or self.error:
             self.play_next()
             return False
-        self.progress.set_value(float(self.meta_pos) / self.meta_total * 100) 
+        self.progress.set_value(float(self.meta_pos) / self.meta_total * 100)
         self.meta_pos_view_update()
         self.proxy.lyric_view.scroll_lyric(self.meta_pos)
 
@@ -1110,7 +1109,7 @@ class Player:
                         next = None # Done, stop
 
         # Becareful here, if next=0, it's still valid, so we don't use 'if next:' here
-        if next != None: 
+        if next != None:
             self.play(self.proxy.playlist_view.liststore[next][0], next)
         else:
             self.idle = True
@@ -1119,10 +1118,10 @@ class Controller:
 
     def delete_event(self, widget, event, data=None):
         # Save playlist 
-	default_dir = os.path.dirname(self.default_playlist)
-	if not os.path.isdir(default_dir):
-	    os.mkdir(default_dir)
-        self.playlist_view.save(self.default_playlist)
+        default_dir = os.path.dirname(self.default_playlist)
+        if not os.path.isdir(default_dir):
+            os.mkdir(default_dir)
+            self.playlist_view.save(self.default_playlist)
 
         if self.player.timer:
             gobject.source_remove(self.player.timer)
@@ -1178,8 +1177,8 @@ class Controller:
         self.load_conf()
 
     def load_conf(self):
-	self.default_playlist = os.path.expanduser(LP_PLAYLIST_DEFAULT_FILE)
-        self.playlist_view.load(self.default_playlist)   
+        self.default_playlist = os.path.expanduser(LP_PLAYLIST_DEFAULT_FILE)
+        self.playlist_view.load(self.default_playlist)
 
 gtk.gdk.threads_init()
 debug_view = DebugWindow()
