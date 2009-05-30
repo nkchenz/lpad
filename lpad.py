@@ -1121,11 +1121,11 @@ class Controller:
         default_dir = os.path.dirname(self.default_playlist)
         if not os.path.isdir(default_dir):
             os.mkdir(default_dir)
-            self.playlist_view.save(self.default_playlist)
+        self.playlist_view.save(self.default_playlist)
 
         if self.player.timer:
             gobject.source_remove(self.player.timer)
-        self.player.timer = None
+            self.player.timer = None
 
         self.player.slave.send('quit')
         gtk.main_quit()
