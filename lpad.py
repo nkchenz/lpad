@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #encoding: utf8
 """
-LPad: Light mp3 player for linux.
+LPad: light mp3 player for linux.
 CopyRight (C) 2008 Chen Zheng <nkchenz@gmail.com>
  
 Distributed under terms of GPL v2
@@ -211,7 +211,7 @@ class Menu:
             'version': LP_VERSION,
             'copyright': '(C) 2008 Chen Zheng',
             'license': 'GPL v2',
-            'website': 'http://code.google.com/p/listenpad',
+            'website': 'http://code.google.com/p/lpad',
             'authors': ['Chen Zheng <nkchenz@gmail.com>'],
             'comments': 'light music player for linux\n%s' % LP_CODE_NAME,
             }
