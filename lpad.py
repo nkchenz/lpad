@@ -23,6 +23,7 @@ import thread
 import fcntl
 from misc import *
 from cue import *
+import engine
 
 LP_NAME = 'LPad' 
 LP_VERSION = '2009.11'
@@ -268,7 +269,7 @@ class LyricChooser:
         button.connect('clicked', self.OnClose)
         hbox.pack_end(button, False, False, 1)
 
-        button = gtk.Button('OK, Select')
+        button = gtk.Button('OK')
         button.connect('clicked', self.OnOK)
         hbox.pack_end(button, False, False, 1)
 
@@ -384,11 +385,11 @@ class LyricView:
 
         tmp = gtk.Label('歌词引擎')
         hbox.pack_start(tmp, False, False, 1)
-        engine = gtk.RadioButton(None, "Baidu")
-        engine.set_active(True)
-        hbox.pack_start(engine, False, False, 1)
-        #engine = gtk.RadioButton(engine, "Google")
-        #hbox.pack_start(engine, False, False, 1)
+        eng = gtk.RadioButton(None, "Baidu")
+        eng.set_active(True)
+        hbox.pack_start(eng, False, False, 1)
+        eng = gtk.RadioButton(eng, "Google")
+        hbox.pack_start(eng, False, False, 1)
     
         button = gtk.Button('More')
         button.connect('clicked', self.hide_tool_panel)
@@ -450,6 +451,10 @@ class LyricView:
         self.curr_ar = None
         self.curr_ti = None
         self.download_links = None
+
+        # For lyric search engine
+        self.current_engine = 'baidu'
+        self.engines = {'baidu': engine.BaiduEngine()}
 
     def foo(self, a):
         # So ugly here, how do you use start_new_thread to start a function need no args?
@@ -554,7 +559,7 @@ class LyricView:
         self.add_line('Searching from %s' % self.repo.search_engine)
         self.add_line('%s %s' % (ar, ti))
 
-        links = self.repo.search_lrc(ar, ti)
+        links = self.engines[self.current_engine].search_lrc(ar, ti)
         if not links:
             self.add_line('Nothing found')
             return

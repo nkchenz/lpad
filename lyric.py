@@ -9,8 +9,7 @@ class LyricRepo(object):
     
     def __init__(self, path):
         self.path = os.path.expanduser(path)
-        self.search_engine = 'http://www.baidu.com/s'
-        pass
+        self.search_engine = 'baidu'
 
     def get_path(self, artist, title):
         # Because we find lyrics by artist and title, but there are many songs which do not have these tags
@@ -19,7 +18,7 @@ class LyricRepo(object):
         return os.path.join(self.path, '%s/%s.lrc' % (artist, title))
 
     def get_lyric(self, artist, title):
-        """Get lyric by artist and title
+        """Get lyric by artist and title from local repo
         Return dict
         """
         # Find in cache first
@@ -32,8 +31,9 @@ class LyricRepo(object):
             return None
 
     def parse_lyric(self, data):
-        """Parse lyric file to a dict which contains a 'lyrics' list and its item are
-        tuples of (timestamp, lyric)
+        """Parse lyric file to a dict
+        
+        'lyrics': [(timestamp, lyric)]
         """
         lyric = {}
         lyrics = {}
@@ -67,50 +67,6 @@ class LyricRepo(object):
 
         return lyric
 
-
-    def search_lrc(self, artist, title):
-        params = urllib.urlencode({'wd': ' '.join([to_gb2312(title), to_gb2312(artist), 'filetype:lrc']), 'cl': 3})
-        url = self.search_engine + '?' + params
-        print url
-        try:
-            f = urllib2.urlopen(url)
-        except urllib2.URLError:
-            print 'urlopen error'
-            return None
-
-        return self.get_lrc_link(f.read())
-    
-    def remove_tags(self, html):
-        return re.sub('<.*?>', '', html)
-
-    def get_lrc_link(self, data):
-        """Find all the links in search results"""
-        links = []
-        for line in data.splitlines():
-            line = to_utf8(line)
-
-            CHARS = '.*?'
-            VAR = '(%s)' % CHARS
-            def MARK(s):
-                return CHARS+s+CHARS
-
-            if '【LRC】' in line:
-                # Friendly writing for regex
-                #    '<table.*?href="(.*?)".*?color.*?>(.*?)<.*?color.*?>(.*?)<.*?<br>'
-                reg = '<table$CHARShref="$VAR"$CHARS>$VAR<br>'
-                reg = reg.replace('$CHARS', CHARS)
-                reg = reg.replace('$VAR', VAR)
-                #reg = reg.replace('$1', MARK('color'))
-                for item in re.findall(reg, line):
-                    ar, ti = '', ''
-                    try:
-                        ti, ar = self.remove_tags(item[1]).split('-')
-                    except:
-                        pass
-                    links.append((item[0], ti.strip(), ar.strip()))
-        return links
-
-
     def download_lrc(self, link):
         try:
             f = urllib2.urlopen(link)
@@ -118,7 +74,6 @@ class LyricRepo(object):
             print 'download error'
             return None
         return f.read()
-        
            
     def save_lyric(self, artist, title, data):
         #self.servers
@@ -132,19 +87,7 @@ class LyricRepo(object):
 
 if __name__ == '__main__':
     repo = LyricRepo('repo')
-    #l = lyric.local_lookup('周杰伦', '千里之外')
     l = repo.get_lyric('xry', 'meetu')
     if l:
         for k,v in l['lyrics']:
             print k,v 
-
-    a = '周杰伦'
-    t = '千里之外'
-    links = repo.search_lrc(a, t)
-    data = repo.download_lrc(links[0][0])
-    repo.save_lyric(a, t, data)
-
-    l = repo.get_lyric(a, t)
-    print l['lyrics']
-    #print repo.search_lrc('许茹芸', '泪海')
-
