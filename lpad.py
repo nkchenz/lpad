@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 #encoding: utf8
 """
 LPad: light mp3 player for linux.
@@ -25,7 +25,7 @@ from misc import *
 from cue import *
 
 LP_NAME = 'LPad' 
-LP_VERSION = '2009.3'
+LP_VERSION = '2009.11'
 LP_CODE_NAME = '光辉岁月'
 LP_WIDTH = 225
 LP_HEIGHT = 400
@@ -622,6 +622,8 @@ class LyricView:
 class PlayListView:
     def __init__(self, proxy):
 
+        self.default_playlist = os.path.expanduser(LP_PLAYLIST_DEFAULT_FILE)
+
         self.proxy = proxy # Controller
         self.cds = {} # Cue files cache
 
@@ -660,6 +662,9 @@ class PlayListView:
     def short_cuts(self, data, event):
         if event.type == gtk.gdk.KEY_PRESS:
             key = event.keyval
+
+            if key == ord('s') or key == ord('S'):
+                self.save(self.default_playlist)
 
             # Multiple delete with  'd', 'D', 'Delete'
             if key == ord('d') or key == ord('D') or key == 65535:
@@ -788,6 +793,7 @@ class PlayListView:
                 plist.append((item[0], track))
         f.write('version=2\n' + 'playlist = ' + str(plist) + '\nvolume=%d' % self.proxy.player.volume)
         f.close()
+        log('Playlist %s saved' % file)
  
 
 class Player:
