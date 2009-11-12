@@ -9,7 +9,6 @@ class LyricRepo(object):
     
     def __init__(self, path):
         self.path = os.path.expanduser(path)
-        self.search_engine = 'baidu'
 
     def get_path(self, artist, title):
         # Because we find lyrics by artist and title, but there are many songs which do not have these tags

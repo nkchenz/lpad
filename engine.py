@@ -15,7 +15,9 @@ class Engine:
         url = self.get_search_url(artist, title)
         print url
         try:
-            f = urllib2.urlopen(url)
+            opener = urllib2.build_opener()
+            opener.addheaders = [('User-agent', 'Mozilla/5.0')]
+            f = opener.open(url)
         except urllib2.URLError:
             print 'urlopen error'
             return None
@@ -54,6 +56,32 @@ class BaiduEngine(Engine):
                     links.append((item[0], ti.strip(), ar.strip()))
         return links
 
+class GoogleEngine(Engine):
+
+    def get_search_url(self, artist, title):
+        params = urllib.urlencode({'q': ' '.join([title, artist, 'filetype:lrc'])})
+        return 'http://www.google.com/search' + '?' + params
+
+    def get_lrc_links(self, data):
+        """Find all the links in search results, google results ouput sucks"""
+        links = []
+        reg = '<cite>(.*?)</cite>' # The cited urls, might abbr.
+        for item in re.findall(reg, data):
+            item = self.remove_tags(item) # Remove html tags
+            item = item.strip(' -') # Remove extra '-'
+            if '...' in item:
+                item = item.replace('...', '.*?') # Generate regexp
+                orig = re.findall('(%s)' % item, data) # Search for the full orignate url
+                if orig:
+                    item = orig[0]
+            item = 'http://%s' % item
+            links.append((item, '', '')) # Diffcult to get the ar and ti, just let empty
+        return links
+
 if __name__ == '__main__':
     eng = BaiduEngine()
-    print  eng.search_lrc('陈绮贞', '旅行的意义')
+    print eng.search_lrc('陈绮贞', '旅行的意义')
+    eng = GoogleEngine()
+    print eng.search_lrc('Damien Rice', 'Cannonball')
+    print eng.search_lrc('eagles', 'hotel California')
+

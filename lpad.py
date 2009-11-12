@@ -383,13 +383,17 @@ class LyricView:
         
         hbox = gtk.HBox(False, 0)
 
+        self.engines_btn = []
         tmp = gtk.Label('歌词引擎')
         hbox.pack_start(tmp, False, False, 1)
         eng = gtk.RadioButton(None, "Baidu")
+        self.engines_btn.append(eng)
         eng.set_active(True)
         hbox.pack_start(eng, False, False, 1)
         eng = gtk.RadioButton(eng, "Google")
+        self.engines_btn.append(eng)
         hbox.pack_start(eng, False, False, 1)
+        eng.connect('clicked', self.choose_search_engine)
     
         button = gtk.Button('More')
         button.connect('clicked', self.hide_tool_panel)
@@ -454,12 +458,20 @@ class LyricView:
 
         # For lyric search engine
         self.current_engine = 'baidu'
-        self.engines = {'baidu': engine.BaiduEngine()}
+        self.engines = {'baidu': engine.BaiduEngine(),
+                'google': engine.GoogleEngine()}
 
     def foo(self, a):
         # So ugly here, how do you use start_new_thread to start a function need no args?
         # start_new_thread requires 2nd arg must be a tuple, but, show_lyric only expect 1 args!
         self.show_lyric()
+
+    def choose_search_engine(self, widget):
+        for btn in self.engines_btn:
+            if btn.get_active():
+                log('Choosen %s' % btn.get_label())
+                self.current_engine = btn.get_label().lower()
+                break
 
     def choose_lyric_local(self, widget):
         dialog = gtk.FileChooserDialog(title='Please choose the .lrc file', \
@@ -556,7 +568,7 @@ class LyricView:
 
     def search_internet(self, ar, ti):
         #print 'thread se started'
-        self.add_line('Searching from %s' % self.repo.search_engine)
+        self.add_line('Searching from %s' % self.current_engine)
         self.add_line('%s %s' % (ar, ti))
 
         links = self.engines[self.current_engine].search_lrc(ar, ti)
