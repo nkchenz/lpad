@@ -27,7 +27,7 @@ import engine
 
 LP_NAME = 'LPad' 
 LP_VERSION = '2009.11'
-LP_CODE_NAME = '光辉岁月'
+LP_CODE_NAME = 'Cannonball'
 LP_WIDTH = 225
 LP_HEIGHT = 400
 
