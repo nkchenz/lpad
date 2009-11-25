@@ -21,13 +21,15 @@ import urllib
 import random
 import thread
 import fcntl
+import commands
+
 from misc import *
 from cue import *
 import engine
 
 LP_NAME = 'LPad' 
 LP_VERSION = '2009.11'
-LP_CODE_NAME = 'Cannonball'
+LP_CODE_NAME = '不要说话'
 LP_WIDTH = 225
 LP_HEIGHT = 400
 
@@ -971,8 +973,22 @@ class Player:
             return
 
         if not is_track:
+            
             title = meta['title']
-            self.meta_total = meta['length']
+
+            # Try to get mp3 length by mp3info
+            tmp = 0
+            try:
+                cmd = 'mp3info -p "%%S" %s' % escape_path(file)
+                log('Using mp3info to detect length: %s' % cmd)
+                tmp = int(commands.getoutput(cmd))
+            except:
+                pass
+            if tmp:
+                self.meta_total = tmp
+            else:
+                self.meta_total = meta['length']
+
             artist = meta['artist']
         else:
             # All titles and artists are the same using get_meta(), so we just keep infos of the track 
@@ -987,7 +1003,7 @@ class Player:
         self.set_cb_state(self.cb_play, 'pause')
 
         # Scroll playlist
-        self.proxy.playlist_view.treeview.set_cursor_on_cell((id, 0))
+        self.proxy.playlist_view.treeview.set_cursor(id)
 
         # Show lyric
         log('ar: %s ti: %s' % (artist, title))
