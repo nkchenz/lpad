@@ -1,0 +1,40 @@
+Require
+--------
+unrar
+
+DataFormat
+-----------
+uncompressing to: /dev/shm/lpad
+
+file path format: /dev/shm/lpad/$real-path-of-rarfile/*.[mp3,ape,flac]
+
+Play
+-----
+These audio files in rar are stored in playlist just as ordinary files. The
+magic is to check the file path before playing it.
+
+If it starts with '/dev/shm/lpad', we know it's in some compressed rars, do:
+
+    if path does't exist:
+        get real path of the rar file
+        uncompressing it to dirname(path)
+
+    play as usual
+
+Add
+-----
+When draged or added, do
+    path = '/dev/shm/lpad/' + $real-path-of-rarfile
+    if path does't exist:
+        uncompressing 
+    add path as usual
+
+Problems
+--------
+If there are too many uncompressed files, we might run short of memory
+
+keep tracking /dev/shm/lpad size?
+keep tracking uncompressed file number?
+LRU?
+
+

@@ -89,7 +89,7 @@ class MPlayerSlave(object):
             meta[k] = to_utf8(v)
             self.log('%s=%s' % (k, meta[k]))
 
-        return meta 
+        return meta
 
     # mute, pause, quit, stop, 
     # seek seconds 2
