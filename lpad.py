@@ -28,8 +28,8 @@ from cue import *
 import engine
 
 LP_NAME = 'LPad' 
-LP_VERSION = '2009.11'
-LP_CODE_NAME = '不要说话'
+LP_VERSION = '2010.01'
+LP_CODE_NAME = 'Not Going Anywhere'
 LP_WIDTH = 225
 LP_HEIGHT = 400
 

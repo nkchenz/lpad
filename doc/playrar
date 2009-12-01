@@ -8,6 +8,11 @@ uncompressing to: /dev/shm/lpad
 
 file path format: /dev/shm/lpad/$real-path-of-rarfile/*.[mp3,ape,flac]
 
+rar might has directories, does not contain music files directly, need a
+special marker like this to hide and carry the real path:
+
+    /dev/shm/lpad/$real-path-of-rarfile.lpad-marker/*.[mp3,ape,flac]
+
 Play
 -----
 These audio files in rar are stored in playlist just as ordinary files. The
@@ -33,8 +38,10 @@ Problems
 --------
 If there are too many uncompressed files, we might run short of memory
 
-keep tracking /dev/shm/lpad size?
-keep tracking uncompressed file number?
+Check mem usage, threshold 3/4
+
+    ideer@chenz:/home/chenz/source$ cat /proc/meminfo
+    MemTotal:        2028240 kB
+    MemFree:         1064136 kB
+
 LRU?
-
-
