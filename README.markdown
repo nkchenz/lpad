@@ -8,16 +8,26 @@ Distributed under terms of GPL v2
 
 http://code.google.com/p/lpad/
 
+Features
+--------
+support ape, flac cue files
+play rar files directly without extracting, be nice to p2p software like emule
+drag and drop
+playlist support
+support lyric show
+lyric auto search by baidu.com or google.c
+更好中文支持
+
 依赖
 ----
 
     python, python-gtk2, mplayer, gstreamer0.10-plugins-ugly
 
-Optional: mp3info 
+Optional: mp3info unrar
 
 apt-get 用户可使用下列命令安装依赖关系
 
-    sudo apt-get install python python-gtk2 mplayer gstreamer0.10-plugins-ugly mp3info
+    sudo apt-get install python python-gtk2 mplayer gstreamer0.10-plugins-ugly mp3info unrar
 
 运行
 ----

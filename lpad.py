@@ -26,6 +26,7 @@ import commands
 from misc import *
 from cue import *
 import engine
+import compress
 
 LP_NAME = 'LPad' 
 LP_VERSION = '2010.01'
@@ -38,7 +39,7 @@ LP_PLAYLIST_BACKGROUND = '#000000'
 LP_PLAYLIST_EXT = '.lpl'
 LP_PLAYLIST_DEFAULT_FILE = '~/.ListenPad/default' + LP_PLAYLIST_EXT
 LYRIC_REPO_PATH = '~/.ListenPad/repo'
-LP_SUPPORT_EXTS = ['.mp3', '.ape', '.flac', '.ogg', '.wma', LP_PLAYLIST_EXT]
+LP_SUPPORT_EXTS = ['.mp3', '.ape', '.flac', '.ogg', '.wma', '.rar', LP_PLAYLIST_EXT]
 
 # For drag and drop files to playlist
 TARGET_TYPE_URI_LIST = 80
@@ -743,17 +744,29 @@ class PlayListView:
             return
 
         # You can add or drag playlist file directly too
+        # Add playlist
         if file.endswith(LP_PLAYLIST_EXT):
             self.load(file)
             return
 
         log('Add File ' + file)
         name, ext =  os.path.splitext(os.path.basename(file))
-        if ext in ['.flac', '.ape', '.ogg']: # Dont check cue file for mp3
+        # Add cue files
+        if ext.lower() in ['.flac', '.ape', '.ogg']: # Dont check cue file for mp3
             cd = self.load_cue(file)
             if cd:
                 self.add_cd(cd)
                 return
+
+        # Add rar file`s
+        if ext.lower() in ['.rar']:
+            p = compress.mount_compressed(file)
+            if not p:
+                return 
+            self.add_dir(p) # Add the uncompressed directory, it's so beautiful!
+            return
+
+        # Add plain files
         name = to_utf8(name)
         self.liststore.append([file, name, '', -1, 0, 0])
 

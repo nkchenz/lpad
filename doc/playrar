@@ -13,6 +13,12 @@ special marker like this to hide and carry the real path:
 
     /dev/shm/lpad/$real-path-of-rarfile.lpad-marker/*.[mp3,ape,flac]
 
+Playlist Format
+----------------
+Need to be changed, should contains meta and track infos of ape, and flac, 
+so we don't need to read cue files while loading playlist, which is not 
+possible if we do lazy uncompressing.
+
 Play
 -----
 These audio files in rar are stored in playlist just as ordinary files. The
@@ -28,11 +34,26 @@ If it starts with '/dev/shm/lpad', we know it's in some compressed rars, do:
 
 Add
 -----
-When draged or added, do
-    path = '/dev/shm/lpad/' + $real-path-of-rarfile
-    if path does't exist:
-        uncompressing 
-    add path as usual
+lazy uncompressing. Don't extract files when loading playlist.
+
+add_file:
+
+    If f starts with '/dev/shm/lpad':
+        r = get rar path of f
+        if r does't exist:
+            do nothing
+            return
+        add f blindly # No need to check whether f exists. Because if we are
+        loading playlist, f might possiblly not exist, and we don't want to
+        extract it right now. And if we are adding a rar file, f certainly exists. 
+        
+        In either case, we really don't care. 
+        
+        Only when playing, should we do some uncompressing job.
+
+    if ext is .rar:
+        uncompressing
+        add path as usual
 
 Problems
 --------
