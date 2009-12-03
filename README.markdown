@@ -10,13 +10,13 @@ http://code.google.com/p/lpad/
 
 Features
 --------
-support ape, flac cue files
-play rar files directly without extracting, be nice to p2p software like emule
-drag and drop
-playlist support
-support lyric show
-lyric auto search by baidu.com or google.c
-更好中文支持
+* support ape, flac cue files
+* play rar files directly without extracting, be nice to p2p software like emule
+* drag and drop
+* playlist support
+* support lyric show
+* lyric auto search by baidu.com or google.com
+* 更好中文支持
 
 依赖
 ----
