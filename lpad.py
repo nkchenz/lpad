@@ -149,7 +149,7 @@ class Menu:
                               gtk.STOCK_OPEN, gtk.RESPONSE_OK))
     
         filter = gtk.FileFilter()
-        filter.add_pattern("*.lpl")
+        filter.add_pattern("*%s" % LP_PLAYLIST_EXT)
         dialog.set_filter(filter)
 
         response = dialog.run()
@@ -793,7 +793,7 @@ class PlayListView:
         if track in cd.tracks:
             log('Add track %d of %s' % (track, cd.file))
             meta  = cd.tracks[track]
-            meta['path'] = file
+            meta['path'] = cd.file
             meta['type'] = 'track'
             meta['track'] = track
             meta['artist'] = meta['performer']
@@ -1021,7 +1021,7 @@ class Player:
             if l:
                 self.meta_total = l
         if song['type'] == 'track':
-            if self.meta_total == -1: # Final track
+            if song['length'] == -1: # Final track
                 self.meta_total = int(meta['length'] - self.index)
             else:
                 self.meta_total = song['length']
