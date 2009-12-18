@@ -22,6 +22,7 @@ import random
 import thread
 import fcntl
 import commands
+import json
 
 from misc import *
 from cue import *
@@ -36,7 +37,7 @@ LP_HEIGHT = 400
 
 LP_PLAYLIST_TEXT = '#17E8F1'
 LP_PLAYLIST_BACKGROUND = '#000000'
-LP_PLAYLIST_EXT = '.lpl'
+LP_PLAYLIST_EXT = '.sl'
 LP_PLAYLIST_DEFAULT_FILE = '~/.ListenPad/default' + LP_PLAYLIST_EXT
 LYRIC_REPO_PATH = '~/.ListenPad/repo'
 LP_SUPPORT_EXTS = ['.mp3', '.ape', '.flac', '.ogg', '.wma', '.rar', LP_PLAYLIST_EXT]
@@ -157,7 +158,6 @@ class Menu:
             if not file.endswith(LP_PLAYLIST_EXT):
                 log('Unknown playlist format %s' % file)
                 return 
-            self.proxy.playlist_view.liststore.clear()
             self.proxy.playlist_view.load(file)
             log('Playlist %s loaded' % file)
         dialog.destroy()
@@ -189,7 +189,7 @@ class Menu:
         response = dialog.run()
         if response == gtk.RESPONSE_OK:
             dir = dialog.get_filename()
-            self.proxy.playlist_view.add_dir(dir)
+            self.proxy.playlist_view.add(dir)
         dialog.destroy()
 
     def OnAddFile(self, event):
@@ -202,11 +202,12 @@ class Menu:
         if response == gtk.RESPONSE_OK:
             files = dialog.get_filenames()
             for f in files:
-                self.proxy.playlist_view.add_file(f)
+                self.proxy.playlist_view.add(f)
         dialog.destroy()
 
     def OnClear(self, event):
-        self.proxy.playlist_view.liststore.clear()
+        self.proxy.playlist_view.songlist = []
+        self.proxy.playlist_view.sync_songlist()
 
     def OnAbout(self, event):
         about = gtk.AboutDialog()
@@ -647,8 +648,8 @@ class PlayListView:
         self.proxy = proxy # Controller
         self.cds = {} # Cue files cache
 
-        # Model of this View, real data: path, title, artist, track, index, length
-        self.liststore = gtk.ListStore(str, str, str, int, int, int)
+        self.liststore = gtk.ListStore(str) # title only
+        self.songlist = []
         self.treeview = gtk.TreeView(self.liststore)
 
         style = gtk.CellRendererText()
@@ -656,7 +657,7 @@ class PlayListView:
         style.set_property('foreground', LP_PLAYLIST_TEXT)
 
         # text is index of the item in liststore
-        self.column_name = gtk.TreeViewColumn('NAME', style, text = 1)
+        self.column_name = gtk.TreeViewColumn('NAME', style, text = 0)
         self.treeview.append_column(self.column_name)
         self.treeview.set_enable_search(False)
         #self.treeview.set_search_column(0)
@@ -688,23 +689,26 @@ class PlayListView:
 
             # Multiple delete with  'd', 'D', 'Delete'
             if key == ord('d') or key == ord('D') or key == 65535:
-                liststore, items =  self.treeview.get_selection().get_selected_rows()
-                # Becare with the indexes after delete 
-                i = 0
-                for item in items:
-                    row = item[0] - i
-                    i += 1
-                    log('Delete ' + liststore[row][0])
-                    del liststore[row]
+                _, items =  self.treeview.get_selection().get_selected_rows()
+                # Delete indexes list in items
+                deleted = [x[0] for x in items]
+                self.songlist = [ x for x in self.songlist if self.songlist.index(x) not in deleted]
+                self.sync_songlist()
 
     def check_file(self, file):
         # If file exists and type is supportted, return True. Else return False
         self.support_types = LP_SUPPORT_EXTS
         return os.path.isfile(file) and os.path.splitext(file)[1].lower() in self.support_types
 
+    def sync_songlist(self):
+        log('Syncing songlist')
+        self.liststore.clear()
+        for x in self.songlist:
+            self.liststore.append([x['title']])
+
     def selection(self, path, col, item):
         id = col[0]
-        file = self.liststore[id][0]
+        file = self.songlist[id]['path']
         # Stop first
         #self.proxy.player.play_stop()
         self.proxy.player.play(file, id)
@@ -716,6 +720,8 @@ class PlayListView:
             self.add_dir(file)
         else:
             self.add_file(file)
+
+        self.sync_songlist()
 
     def load_cue(self, file):
         '''
@@ -767,8 +773,12 @@ class PlayListView:
             return
 
         # Add plain files
-        name = to_utf8(name)
-        self.liststore.append([file, name, '', -1, 0, 0])
+        song = {}
+        song['title'] = to_utf8(name)
+        song['type'] = 'file'
+        song['path'] = file
+        song['artist'] = ''
+        self.songlist.append(song)
 
     def add_dir(self, dir):
         log('Add Dir ' + dir)
@@ -783,49 +793,60 @@ class PlayListView:
         if track in cd.tracks:
             log('Add track %d of %s' % (track, cd.file))
             meta  = cd.tracks[track]
-            self.liststore.append([cd.file, meta['title'], meta['performer'], track, meta['index'], meta['length']])
+            meta['path'] = file
+            meta['type'] = 'track'
+            meta['track'] = track
+            meta['artist'] = meta['performer']
+            self.songlist.append(meta)
 
-    def load(self, file):
+    def load(self, config_file):
+        if not os.path.isfile(config_file):
+            return
+
+        # Only support latest config file
+        try:
+            config = json.loads(open(config_file, 'r').read())
+        except ValueError:
+            return
+
+        if config['version'] < 3:
+            return
+
+        vol = config['volume']
+        self.proxy.player.volume = vol
+        self.proxy.player.volume_view.set_value(vol / 100.0)
+
+        self.songlist = []
+        for song in config['songlist']:
+            # Check for not exsits files and update cues
+            # If in mem files, do not check
+            if compress.MARKER in song['path']:
+                self.songlist.append(song)
+                continue
+
+            if not os.path.exists(song['path']):
+                continue
+
+            if song['type'] == 'file':
+                self.songlist.append(song)
+
+            if song['type'] == 'track':
+                cd = self.load_cue(song['path'])
+                if cd:
+                    self.add_track(cd, song['track'])
+
+        self.sync_songlist()
+
+    def save(self, config_file):
         #file = os.path.expanduser(file)
-        tmp = {}
-        if os.path.isfile(file):
-            execfile(file, {}, tmp)
-            version = 1 
-            if 'version' in tmp:
-                version = tmp['version']
-
-            vol = 60
-            if version >= 2:
-                # Dont know how to get system volume in pygtk, so just read old value from file
-                vol = tmp['volume']
-            self.proxy.player.volume = vol
-            self.proxy.player.volume_view.set_value(vol / 100.0)
-
-            if 'playlist' in tmp:
-                for f in tmp['playlist']:
-                    if version == 1:
-                        self.add_file(f)
-                    else:
-                        if isinstance(f, tuple):
-                            cd = self.load_cue(f[0])
-                            if cd:
-                                self.add_track(cd, f[1])
-                        else:
-                           self.add_file(f)
-
-    def save(self, file):
-        #file = os.path.expanduser(file)
-        f = open(file, 'w+')
-        plist = []
-        for item in self.liststore:
-            track = item[3]
-            if track == -1:
-                plist.append(item[0])
-            else:
-                plist.append((item[0], track))
-        f.write('version=2\n' + 'playlist = ' + str(plist) + '\nvolume=%d' % self.proxy.player.volume)
+        f = open(config_file, 'w+')
+        config = {}
+        config['version'] = 3
+        config['volume'] = self.proxy.player.volume
+        config['songlist'] = self.songlist
+        f.write(json.dumps(config))
         f.close()
-        log('Playlist %s saved' % file)
+        log('Playlist %s saved' % config_file)
  
 
 class Player:
@@ -932,6 +953,14 @@ class Player:
                 break
         fcntl.fcntl(fd, fcntl.F_SETFL, flags)
 
+    def get_length_by_mp3info(self, path):
+        try:
+            cmd = 'mp3info -p "%%S" %s' % escape_path(path)
+            log('Using mp3info to detect length: %s' % cmd)
+            tmp = int(commands.getoutput(cmd))
+        except:
+            return None
+        return tmp
 
     def play(self, file, id):
         log('playing %s %s' % (file, id))
@@ -940,6 +969,11 @@ class Player:
         if self.timer:
             gobject.source_remove(self.timer) # Remove old timer
 
+        # Uncompressing if needed
+        if compress.MARKER in file:
+            if not compress.mount_compressed(compress.get_real_path(file)):
+                return
+
         if not os.path.isfile(file):
             log(file + 'not exists, play next')
             self.play_next()
@@ -947,35 +981,30 @@ class Player:
 
         self.idle = False
 
-        self.index = 0 # Offset
+        self.index = 0 # Offset for track file
         self.meta_pos = 0
-        file, title, artist, track, index, length = self.proxy.playlist_view.liststore[id]
-        is_track = False
-        if track is not -1: #
-            is_track = True
-            log('Play track %d' % track)
-            self.index = index
-            self.meta_total = length
+
+        song = self.proxy.playlist_view.songlist[id]
+        title, artist = song['title'], song['artist']
 
         # Deal with special chars in shell command, yes, it's ugly but very effective
         self.timer = gobject.timeout_add(1000, self.timer_callback, self) # Start a new one
         self.error = False
-        if not is_track:
-            self.slave.send('loadfile %s\nvolume %d 1' % (escape_path(file), self.volume))
-            #self.slave.send('loadfile %s' % escape_path(file))
-            #self.volume_view.set_value(self.volume / 100.0)
-        else:
+
+        if song['type'] == 'file':
+            self.slave.send('loadfile %s\nvolume %d 1' % (escape_path(song['path']), self.volume))
+
+        if song['type'] == 'track':
+            log('Play track %d' % song['track'])
+            self.index = song['index']
             # We need the function of playing from offset index, but mplayer doesn't provide it
             # 'pausing loadfile' doesn't work in idle slave mode
-            #self.slave.send('loadfile %s\npause\nseek %d 2\nget_percent_pos\nvolume %d 1' % \
-            #            (escape_path(file), self.index, self.volume))
-            self.slave.send('loadfile %s\nseek %d 2' % (escape_path(file), self.index))
-            # mplayer不能实现精确seek: seek后硬件缓冲中仍有seek前的部分音频信息
-            # 如果立即打开音量，会听到杂音。临时的解决办法是，暂时睡眠一会儿。
-            # 理想状态是seek之后清除以前的缓冲，精确定位
-            if track != 0:
-                time.sleep(1.5)
+            self.slave.send('loadfile %s\nseek %d 2' % (escape_path(song['path']), self.index))
+            # Mplayer can't seek to the exact offset, so we sleep for a while
+            if song['track'] != 0:
+                time.sleep(1)
             self.slave.send('volume %d 1' % self.volume)
+
         self.timer_enable = True
 
         # Get info, meta data has been converted to utf8 already
@@ -985,32 +1014,21 @@ class Player:
             self.play_next()
             return
 
-        if not is_track:
-            
-            title = meta['title']
-
-            # Try to get mp3 length by mp3info
-            tmp = 0
-            try:
-                cmd = 'mp3info -p "%%S" %s' % escape_path(file)
-                log('Using mp3info to detect length: %s' % cmd)
-                tmp = int(commands.getoutput(cmd))
-            except:
-                pass
-            if tmp:
-                self.meta_total = tmp
-            else:
-                self.meta_total = meta['length']
-
-            artist = meta['artist']
-        else:
-            # All titles and artists are the same using get_meta(), so we just keep infos of the track 
+        # Adjust length
+        if song['type'] == 'file':
+            self.meta_total = meta['length']
+            l = self.get_length_by_mp3info(song['path'])
+            if l:
+                self.meta_total = l
+        if song['type'] == 'track':
             if self.meta_total == -1: # Final track
                 self.meta_total = int(meta['length'] - self.index)
+            else:
+                self.meta_total = song['length']
 
         self.meta_pos_view_update()
         if not title:
-            title = os.path.splitext(os.path.basename(file))[0]
+            title = os.path.splitext(os.path.basename(song['path']))[0]
         self.meta.set_label('%s %s' % (title, meta['bitrate']))
         self.tooltips.set_tip(self.meta, '%s-%s' % (artist, meta['album']))
         self.set_cb_state(self.cb_play, 'pause')
@@ -1137,7 +1155,7 @@ class Player:
         # If has nothing to play, then stop
         self.play_stop()
         
-        total = len(self.proxy.playlist_view.liststore)
+        total = len(self.proxy.playlist_view.songlist)
         # Repeat mode
         if self.R_mode:
             next = self.id
@@ -1162,7 +1180,7 @@ class Player:
 
         # Becareful here, if next=0, it's still valid, so we don't use 'if next:' here
         if next != None:
-            self.play(self.proxy.playlist_view.liststore[next][0], next)
+            self.play(self.proxy.playlist_view.songlist[next]['path'], next)
         else:
             self.idle = True
         

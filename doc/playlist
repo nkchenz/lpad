@@ -1,0 +1,24 @@
+json format
+
+config:
+    version
+    songlist
+    volume
+
+liststore:
+    title
+
+songlist:
+    songs
+
+song:
+    title
+    ar
+    length
+    path
+    type = 'track', 'file', 'rar'
+    index
+    track
+
+def sync_songlist:
+    pass
