@@ -1,7 +1,7 @@
 LPad
 ====
 
-A light music player for Linux.
+My music player for linux.
 
 CopyRight (C) 2008 Chen Zheng <nkchenz@gmail.com> 
 Distributed under terms of GPL v2

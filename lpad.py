@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #encoding: utf8
 """
-LPad: light mp3 player for linux.
+LPad: My music player for linux.
 CopyRight (C) 2008 Chen Zheng <nkchenz@gmail.com>
  
 Distributed under terms of GPL v2
@@ -28,10 +28,11 @@ from misc import *
 from cue import *
 import engine
 import compress
+import version
 
 LP_NAME = 'LPad' 
-LP_VERSION = '2010.01'
-LP_CODE_NAME = 'Not Going Anywhere'
+LP_VERSION = version.version
+LP_CODE_NAME = version.codename
 LP_WIDTH = 225
 LP_HEIGHT = 400
 
@@ -218,7 +219,7 @@ class Menu:
             'license': 'GPL v2',
             'website': 'http://code.google.com/p/lpad',
             'authors': ['Chen Zheng <nkchenz@gmail.com>'],
-            'comments': 'light music player for linux\n%s' % LP_CODE_NAME,
+            'comments': 'My music player for linux\nCodeName: %s' % LP_CODE_NAME,
             }
         for k, v in infos.items():
             name = 'set_' + k
